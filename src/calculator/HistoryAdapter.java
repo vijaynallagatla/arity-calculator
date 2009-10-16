@@ -19,6 +19,7 @@ class HistoryAdapter extends BaseAdapter {
     static class TagData {
         TextView input;
         TextView result;
+        TextView separator;
     }
 
     HistoryAdapter(Context context, History history) {
@@ -27,7 +28,7 @@ class HistoryAdapter extends BaseAdapter {
     }
 
     public int getCount() {
-        return history.size;
+        return history.entries.size();
     }
 
     public Object getItem(int position) {
@@ -44,18 +45,16 @@ class HistoryAdapter extends BaseAdapter {
             TagData tag = new TagData();
             tag.input = (TextView) view.findViewById(R.id.input);
             tag.result = (TextView) view.findViewById(R.id.result);
+            tag.separator = (TextView) view.findViewById(R.id.equals_separator);
             view.setTag(tag);
         }
         TagData tag = (TagData) view.getTag();
-        int revPos = history.size - pos - 1;
-        tag.input.setText(history.lines[revPos]);
-        tag.result.setText("" + revPos);
+        int revPos = history.entries.size() - pos - 1;
+        HistoryEntry entry = history.entries.get(revPos);
+        tag.input.setText(entry.line);
+        String result = entry.result;
+        tag.result.setText(result);
+        tag.separator.setVisibility(result.length() == 0 ? View.GONE : View.VISIBLE);
         return view;
     }
-
-    /*
-    public boolean hasStableIds() {
-        return true;
-    }
-    */
 }

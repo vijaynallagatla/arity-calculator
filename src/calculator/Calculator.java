@@ -158,15 +158,36 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     // OnKeyListener
     public boolean onKey(View v, int keyCode, KeyEvent event) {
         log("key " + keyCode + ' ' + event);
-        if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+        int action = event.getAction();
+        if (action == KeyEvent.ACTION_DOWN) {
+            switch (keyCode) {
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
                 doEnter();
+                break;
+                
+            case KeyEvent.KEYCODE_DPAD_UP:
+                onUp();
+                break;
+                
+            case KeyEvent.KEYCODE_DPAD_DOWN:            
+                onDown();
+                break;
+            default:
+                return false;
             }
             return true;
+        } else {
+            switch (keyCode) {
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                return true;
+            }
+            return false;
         }
-        return false;
     }
-
 
     private Handler handler = new Handler() {
             public void handleMessage(Message msg) {
@@ -187,19 +208,26 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
         if (text.length() == 0) {
             return;
         }
-        if (nDigits == 0) {
-            nDigits = getResultSpace();
-            log("digit space " + nDigits);
-        }
-        try {
-            String resultStr = Util.complexToString(symbols.evalComplex(text), nDigits, 2).replace(INFINITY, INFINITY_UNICODE);
-            result.setText(resultStr);
+        String res = evaluate(text);
+        if (res != null) {
+            result.setText(res);
             result.setEnabled(true);
-        } catch (SyntaxException e) {
+        } else {
             result.setEnabled(false);
         }
     }
     
+    private String evaluate(String text) {
+        if (nDigits == 0) {
+            nDigits = getResultSpace();
+        }
+        try {
+            return Util.complexToString(symbols.evalComplex(text), nDigits, 2).replace(INFINITY, INFINITY_UNICODE);
+        } catch (SyntaxException e) {
+            return null;
+        }
+    }
+
     private int getResultSpace() {
         int width = result.getWidth() - result.getTotalPaddingLeft() - result.getTotalPaddingRight();
         float oneDigitWidth = result.getPaint().measureText("5555555555") / 10f;
@@ -215,10 +243,34 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
 
     void onEnter() {
         String text = input.getText().toString();
-        if (text.length() > 0) {
-            history.add(text);
+        if (history.onEnter(text, evaluate(text))) {
             adapter.notifyDataSetInvalidated();
-            input.setText(null);
+        }
+        input.setText(history.getText());
+    }
+    
+    /*
+    private void updateChecked() {
+        int pos = history.getListPos();
+        if (pos >= 0) {
+            log("check " + pos);
+            historyView.setItemChecked(pos, true);
+            adapter.notifyDataSetInvalidated();
+        }
+    }
+    */
+
+    void onUp() {
+        if (history.moveUp(input.getText().toString())) {
+            input.setText(history.getText());
+            // updateChecked();
+        }
+    }
+
+    void onDown() {
+        if (history.moveDown(input.getText().toString())) {
+            input.setText(history.getText());
+            // updateChecked();
         }
     }
     
