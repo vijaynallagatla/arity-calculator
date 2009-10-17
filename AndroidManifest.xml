@@ -13,5 +13,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="calculator.ListDefs" android:label="User definitions" />
+	<activity android:name="calculator.ListBuiltins" android:label="Built-in definitions" />
     </application>
 </manifest> 

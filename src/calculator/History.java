@@ -6,50 +6,32 @@ import android.content.Context;
 import java.io.*;
 import java.util.ArrayList;
 
-class History {
-    private static final int VERSION = 1;
-    private static final String FILENAME = "history";
+class History extends FileHandler {
     private static final int SIZE_LIMIT = 50;
-    private Context context;
     ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
-    private int pos;
+    int pos;
     HistoryEntry aboveTop = new HistoryEntry("", "");
-        
+            
     History(Context context) {
-        this.context = context;
-        try {
-            DataInputStream is = new DataInputStream(new BufferedInputStream(context.openFileInput(FILENAME), 256));
-            int version = is.readInt();
-            if (version != VERSION) {
-                throw new IllegalStateException("invalid histoy version " + version);
-            }
-            aboveTop = new HistoryEntry(is);
-            int loadSize = is.readInt();
-            for (int i = 0; i < loadSize; ++i) {                
-                entries.add(new HistoryEntry(is));
-            }
-            is.close();
-            pos = entries.size();
-        } catch (FileNotFoundException e) {
-            // ignore
-        } catch (IOException e) {
-            throw new RuntimeException("" + e);
-        }        
+	super(context, "history", 1);
+	load();
     }
 
-    void save() {
-        try {
-            DataOutputStream os = new DataOutputStream(new BufferedOutputStream(context.openFileOutput(FILENAME, 0), 256));
-            os.writeInt(VERSION);
-            aboveTop.save(os);
-            os.writeInt(entries.size());
-            for (HistoryEntry entry : entries) {
-                entry.save(os);
-            }
-            os.close();
-        } catch (IOException e) {
-            throw new RuntimeException("" + e);
-        }
+    void doRead(DataInputStream is) throws IOException {
+	aboveTop = new HistoryEntry(is);
+	int loadSize = is.readInt();
+	for (int i = 0; i < loadSize; ++i) {                
+	    entries.add(new HistoryEntry(is));
+	}
+	pos = entries.size();
+    }
+
+    void doWrite(DataOutputStream os) throws IOException {
+	aboveTop.save(os);
+	os.writeInt(entries.size());
+	for (HistoryEntry entry : entries) {
+	    entry.save(os);
+	}
     }
     
     private HistoryEntry currentEntry() {
@@ -103,6 +85,7 @@ class History {
     }
 
     String getText() {
+	Calculator.log("history text at pos " + pos + ' ' + currentEntry().editLine);
         return currentEntry().editLine;
     }    
 }

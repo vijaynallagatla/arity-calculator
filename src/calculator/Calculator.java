@@ -15,15 +15,17 @@ import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.util.Log;
 import android.content.res.Resources;
 import android.content.res.Configuration;
+import android.content.Intent;
 
 import arity.calculator.R;
 
-import org.javia.arity.Symbols;
-import org.javia.arity.SyntaxException;
-import org.javia.arity.Util;
+import org.javia.arity.*;
 
 public class Calculator extends Activity implements TextWatcher, View.OnKeyListener
 {
@@ -37,7 +39,40 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     private History history;
     private HistoryAdapter adapter;
     private Symbols symbols = new Symbols();
+    private Defs defs;
     private int nDigits = 0;
+    private boolean pendingClearResult;
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+	MenuInflater inflater = new MenuInflater(this);
+	inflater.inflate(R.menu.main, menu);
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) {
+	super.onOptionsItemSelected(item);
+	int id = item.getItemId();
+	switch (id) {
+	case R.id.list_defs: {
+	    Intent i = new Intent(this, ListDefs.class);
+	    i.putStringArrayListExtra("", defs.lines);
+	    startActivity(i);
+	    break;
+	}
+
+	case R.id.list_builtins: {
+	    Intent i = new Intent(this, ListBuiltins.class);
+	    i.putStringArrayListExtra("", defs.lines);
+	    startActivity(i);
+	    break;
+	}
+	    
+	default:
+	    return false;
+	}
+	return true;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -65,6 +100,8 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
         if (historyView != null) {
             historyView.setAdapter(adapter);
         }
+	
+	defs = new Defs(this, symbols);
     }
 
     static class Factory extends Editable.Factory {
@@ -140,12 +177,17 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     public void onPause() {
         super.onPause();
         history.save();
+	defs.save();
     }
 
     // TextWatcher
     public void afterTextChanged(Editable s) {
         handler.removeMessages(MSG_INPUT_CHANGED);
         handler.sendEmptyMessageDelayed(MSG_INPUT_CHANGED, 250);
+	if (pendingClearResult && s.length() != 0) {
+	    result.setText(null);
+	    pendingClearResult = false;
+	}
     }
     
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -217,12 +259,22 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
         }
     }
     
-    private String evaluate(String text) {
-        if (nDigits == 0) {
+    private String formatEval(Complex value) {
+	if (nDigits == 0) {
             nDigits = getResultSpace();
         }
+	String res = Util.complexToString(value, nDigits, 2);
+	return res.replace(INFINITY, INFINITY_UNICODE);
+    }
+
+    private String evaluate(String text) {
         try {
-            return Util.complexToString(symbols.evalComplex(text), nDigits, 2).replace(INFINITY, INFINITY_UNICODE);
+	    if (Symbols.isDefinition(text)) {
+		Function f = symbols.compile(text);
+		return f.arity()==0 ? formatEval(f.evalComplex()) : "function";
+	    } else {
+		return formatEval(symbols.evalComplex(text));
+	    }
         } catch (SyntaxException e) {
             return null;
         }
@@ -243,10 +295,33 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
 
     void onEnter() {
         String text = input.getText().toString();
-        if (history.onEnter(text, evaluate(text))) {
+	boolean historyChanged = false;
+	try {
+	    FunctionAndName fan = symbols.compileWithName(text);
+	    if (fan.name != null) {
+		symbols.define(fan);
+		defs.add(text);
+	    }
+	    Function f = fan.function;
+	    historyChanged = f.arity() == 0 ?
+		history.onEnter(text, formatEval(f.evalComplex())) :
+		history.onEnter(text, null);
+	} catch (SyntaxException e) {
+	    historyChanged = history.onEnter(text, null);
+	}
+        if (historyChanged) {
             adapter.notifyDataSetInvalidated();
         }
-        input.setText(history.getText());
+	changeInput(history.getText());
+    }
+    
+    private void changeInput(String newInput) {
+        input.setText(newInput);
+	if (newInput.length() > 0) {
+	    result.setText(null);
+	} else {
+	    pendingClearResult = true;
+	}
     }
     
     /*
@@ -261,15 +336,19 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     */
 
     void onUp() {
+	log("up from " + history.pos);
         if (history.moveUp(input.getText().toString())) {
-            input.setText(history.getText());
+	    log("move up true");
+            changeInput(history.getText());
             // updateChecked();
         }
     }
 
     void onDown() {
+	log("down from " + history.pos);
         if (history.moveDown(input.getText().toString())) {
-            input.setText(history.getText());
+	    log("move down true");
+            changeInput(history.getText());
             // updateChecked();
         }
     }
@@ -285,4 +364,6 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     void doBackspace() {
         input.dispatchKeyEvent(KEY_DEL);
     }
+
+    
 }

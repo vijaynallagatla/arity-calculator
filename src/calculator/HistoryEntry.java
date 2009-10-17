@@ -24,10 +24,7 @@ class HistoryEntry {
 
     void save(DataOutputStream os) throws IOException {
         os.writeUTF(line);
-        if (editLine.equals(line)) {
-            editLine = "";
-        }
-        os.writeUTF(editLine);
+        os.writeUTF(editLine.equals(line) ? "" : editLine);
         os.writeUTF(result);
     }
 
