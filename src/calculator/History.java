@@ -11,10 +11,19 @@ class History extends FileHandler {
     ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
     int pos;
     HistoryEntry aboveTop = new HistoryEntry("", "");
+
             
     History(Context context) {
 	super(context, "history", 1);
 	load();
+	/*
+	if (pos == 0) {
+	    entries.add(new HistoryEntry("ln(e^100)", "100"));
+	    entries.add(new HistoryEntry("e^(i\u00d7pi)", "-1"));
+	    entries.add(new HistoryEntry("sqrt(pi)\u00f70.5!", "2"));
+	    pos = entries.size();
+	}
+	*/
     }
 
     void doRead(DataInputStream is) throws IOException {
@@ -47,6 +56,9 @@ class History extends FileHandler {
     }
 
     boolean onEnter(String text, String result) {
+	if (result == null) {
+	    result = "";
+	}
         currentEntry().onEnter();
         pos = entries.size();
         if (text.length() == 0) {
@@ -66,20 +78,25 @@ class History extends FileHandler {
         return true;
     }
 
+    void moveToPos(int listPos, String text) {
+	currentEntry().editLine = text;
+	pos = entries.size() - listPos - 1;
+    }
+
     boolean moveUp(String text) {
+        currentEntry().editLine = text;
         if (pos >= entries.size()) {
             return false;
         }
-        currentEntry().editLine = text;
         ++pos;
         return true;
     }
     
     boolean moveDown(String text) {
+        currentEntry().editLine = text;
         if (pos <= 0) {
             return false;
         }
-        currentEntry().editLine = text;
         --pos;
         return true;
     }

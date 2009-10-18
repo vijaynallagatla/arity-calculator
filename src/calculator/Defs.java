@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import org.javia.arity.*;
 
 class Defs extends FileHandler {
-    private static final int SIZE_LIMIT = 100;
+    private static final int SIZE_LIMIT = 50;
     ArrayList<String> lines = new ArrayList<String>();
     private Symbols symbols;
 

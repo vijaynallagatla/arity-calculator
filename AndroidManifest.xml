@@ -3,7 +3,7 @@
       package="arity.calculator"
       android:versionCode="1"
       android:versionName="1.0">
-    <application android:label="Arity">
+    <application android:label="Arity" android:icon="@drawable/icon" >
         <activity android:name="calculator.Calculator"
                   android:label="Arity"
                   android:theme="@android:style/Theme.NoTitleBar.Fullscreen"

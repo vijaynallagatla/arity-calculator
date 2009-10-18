@@ -10,9 +10,9 @@ import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.text.TextWatcher;
 import android.text.Editable;
-import android.text.SpannableStringBuilder;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Menu;
@@ -23,11 +23,15 @@ import android.content.res.Resources;
 import android.content.res.Configuration;
 import android.content.Intent;
 
+import java.util.ArrayList;
+
 import arity.calculator.R;
 
 import org.javia.arity.*;
 
-public class Calculator extends Activity implements TextWatcher, View.OnKeyListener
+public class Calculator extends Activity implements TextWatcher, 
+						    View.OnKeyListener,
+						    AdapterView.OnItemClickListener
 {
     private static final int MSG_INPUT_CHANGED = 1;
     private static final String INFINITY = "Infinity";
@@ -42,6 +46,70 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     private Defs defs;
     private int nDigits = 0;
     private boolean pendingClearResult;
+    private String[] builtins;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.main);
+
+        Configuration config = getResources().getConfiguration();
+        boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
+        boolean hasKeyboard = config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
+
+        result = (TextView) findViewById(R.id.result);
+
+        input  = (EditText) findViewById(R.id.input);
+        input.setOnKeyListener(this);
+        input.addTextChangedListener(this);
+        input.setEditableFactory(new CalculatorEditable.Factory());
+            
+        // input.setInputType(0);
+
+        history = new History(this);
+        adapter = new HistoryAdapter(this, history);
+	changeInput(history.getText());
+        
+        historyView = (ListView) findViewById(R.id.history);
+        if (historyView != null) {
+            historyView.setAdapter(adapter);
+	    historyView.setOnItemClickListener(this);
+        }
+
+	Symbol[] syms = symbols.getTopFrame();
+	int size = syms.length;
+	builtins = new String[size];
+	for (int i = 0; i < size; ++i) {
+	    String s = syms[i].getName();
+	    int arity = syms[i].getArity();
+	    String args = arity==0 ? "" : arity==1 ? "(x)" : arity==2 ? "(x,y)" : "(x,y,z)";
+	    builtins[i] = s + args;
+	}
+	symbols.pushFrame();
+	defs = new Defs(this, symbols);
+	if (history.pos == 0) {
+	    String[] init = {
+		"sqrt(pi)\u00f70.5!",
+		"e^(i\u00d7pi)",
+		"ln(e^100)",
+		"bmi(w,h)=w/h^2",
+		"bmi(75,1.82)",
+	    };
+	    nDigits = 10;
+	    for (String s : init) {
+		onEnter(s);
+	    }
+	    nDigits = 0;
+	}
+    }
+
+    public void onPause() {
+        super.onPause();
+	onUp();
+        history.save();
+	defs.save();
+    }
 
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
@@ -63,7 +131,14 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
 
 	case R.id.list_builtins: {
 	    Intent i = new Intent(this, ListBuiltins.class);
-	    i.putStringArrayListExtra("", defs.lines);
+	    //String[] list = symbols.getDictionary();
+	    /*
+	    for (Symbol symbol : predefined) {
+		String str = symbol.getName() + ' ' + symbol.getArity() + ' ' + symbol.getComment();
+		list.add(str);
+	    }
+	    */
+	    i.putExtra("", builtins);
 	    startActivity(i);
 	    break;
 	}
@@ -74,112 +149,12 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
 	return true;
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
-
-        Configuration config = getResources().getConfiguration();
-        boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
-        boolean hasKeyboard = config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
-
-        result = (TextView) findViewById(R.id.result);
-
-        input  = (EditText) findViewById(R.id.input);
-        input.setOnKeyListener(this);
-        input.addTextChangedListener(this);
-        input.setEditableFactory(new Factory());
-            
-        // input.setInputType(0);
-
-        history = new History(this);
-        adapter = new HistoryAdapter(this, history);
-        
-        historyView = (ListView) findViewById(R.id.history);
-        if (historyView != null) {
-            historyView.setAdapter(adapter);
-        }
-	
-	defs = new Defs(this, symbols);
+    // OnItemClickListener
+    public void onItemClick(AdapterView parent, View view, int pos, long id) {
+	history.moveToPos(pos, input.getText().toString());
+	changeInput(history.getText());
     }
-
-    static class Factory extends Editable.Factory {
-        public Editable newEditable(CharSequence source) {
-            return new CalculatorEditable(source);
-        }
-    }
-
-    static class CalculatorEditable extends SpannableStringBuilder {
-        private static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7';
-        private boolean isRec;
-
-        public CalculatorEditable(CharSequence source) {
-            super(source);
-        }
-
-        public SpannableStringBuilder replace(int start, int end, CharSequence buf, int bufStart, int bufEnd) {
-            if (isRec || bufEnd - bufStart != 1) {
-                return super.replace(start, end, buf, bufStart, bufEnd);
-            } else {
-                isRec = true;                
-                try {
-                    char c = buf.charAt(bufStart);
-                    return internalReplace(start, end, c);
-                } finally {
-                    isRec = false;
-                }
-            }
-        }
-
-        private boolean isOperator(char c) {
-            return "\u2212\u00d7\u00f7+-/*".indexOf(c) != -1;
-        }
-
-        private SpannableStringBuilder internalReplace(int start, int end, char c) {
-            switch (c) {
-            case '-': c = MINUS; break;
-            case '*': c = TIMES; break;
-            case '/': c = DIV;   break;
-            }
-            if (c == '.') {
-                int p = start - 1;
-                while (p >= 0 && Character.isDigit(charAt(p))) {
-                    --p;
-                }
-                if (p >= 0 && charAt(p) == '.') {
-                    return super.replace(start, end, "");
-                }
-            }
-
-            char prevChar = start > 0 ? charAt(start-1) : '\0';
-            
-            if (c == MINUS && prevChar == MINUS) {
-                return super.replace(start, end, "");
-            }
-            
-            if (isOperator(c)) {
-                while (isOperator(prevChar) && 
-                       (c != MINUS || prevChar == '+')) {
-                    --start;
-                    prevChar = start > 0 ? charAt(start-1) : '\0';
-                }
-            }
-            
-            //don't allow leading operator + * /
-            if (start == 0 && isOperator(c) && c != MINUS) {
-                return super.replace(start, end, "");
-            }
-            return super.replace(start, end, "" + c);
-        }
-    }
-
-    public void onPause() {
-        super.onPause();
-        history.save();
-	defs.save();
-    }
-
+    
     // TextWatcher
     public void afterTextChanged(Editable s) {
         handler.removeMessages(MSG_INPUT_CHANGED);
@@ -294,7 +269,10 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     }
 
     void onEnter() {
-        String text = input.getText().toString();
+	onEnter(input.getText().toString());
+    }
+
+    void onEnter(String text) {
 	boolean historyChanged = false;
 	try {
 	    FunctionAndName fan = symbols.compileWithName(text);
@@ -317,6 +295,7 @@ public class Calculator extends Activity implements TextWatcher, View.OnKeyListe
     
     private void changeInput(String newInput) {
         input.setText(newInput);
+	input.setSelection(newInput.length());
 	if (newInput.length() > 0) {
 	    result.setText(null);
 	} else {
