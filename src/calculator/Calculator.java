@@ -220,7 +220,7 @@ public class Calculator extends Activity implements TextWatcher,
         Log.d("***", mes);
     }
 
-    private void evaluate() {
+    void evaluate() {
         String text = input.getText().toString();
         if (text.length() == 0) {
             return;

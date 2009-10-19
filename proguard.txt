@@ -1,0 +1,5 @@
+-keep public class calculator.Calculator { public *; }
+-dontskipnonpubliclibraryclasses
+-optimizationpasses 2
+-printmapping map.txt
+-flattenpackagehierarchy
