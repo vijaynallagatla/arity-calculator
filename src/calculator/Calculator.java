@@ -48,6 +48,31 @@ public class Calculator extends Activity implements TextWatcher,
     private boolean pendingClearResult;
     private String[] builtins;
 
+    static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7', SQRT = '\u221a', PI = '\u03c0';
+
+    private static final char[][] ALPHA = {
+        {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'},
+        {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'},
+        {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'p', PI },
+        {'(', ',', ')', '^', '!', SQRT, '%', ' ', ' ', '^'},
+    };
+
+    private static final char[][] DIGITS = {
+        {'7', '8', '9', TIMES, DIV, '='},
+        {'4', '5', '6', '+', MINUS, 'C'},
+        {'1', '2', '3', '0', '.',   'E'},
+    };
+
+    private static final char[][] ALPHA2 = {
+        {'q', 'w', 'e', 'r', 't', 'c', 'v', 'b', 'y', 'u', 'i', 'o', 'p'},
+        {'a', 's', 'd', 'f', 'g', 'z', 'x', 'n', 'm', 'h', 'j', 'k', 'l'},
+    };
+    
+    private static final char[][] DIGITS2 = {
+        {'(', ',', ')', '^', '!', SQRT, '%', DIV, TIMES, MINUS, '+', 'C'},        
+        {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 'E'},
+    };
+
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
@@ -55,17 +80,25 @@ public class Calculator extends Activity implements TextWatcher,
         setContentView(R.layout.main);
 
         Configuration config = getResources().getConfiguration();
-        boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
-        boolean hasKeyboard = config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
+        final boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
+        // final boolean hasKeyboard = config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
+        
+        KeyboardView alpha = (KeyboardView) findViewById(R.id.alpha);
+        KeyboardView digits = (KeyboardView) findViewById(R.id.digits);
+        if (isLandscape) {                        
+            digits.init(DIGITS2, null);
+        } else {
+            alpha.init(ALPHA, null);
+            digits.init(DIGITS, alpha);
+        }
 
         result = (TextView) findViewById(R.id.result);
 
         input  = (EditText) findViewById(R.id.input);
         input.setOnKeyListener(this);
         input.addTextChangedListener(this);
-        input.setEditableFactory(new CalculatorEditable.Factory());
-            
-        // input.setInputType(0);
+        input.setEditableFactory(new CalculatorEditable.Factory());            
+        input.setInputType(0);
 
         history = new History(this);
         adapter = new HistoryAdapter(this, history);

@@ -12,7 +12,7 @@ class CalculatorEditable extends SpannableStringBuilder {
         }
     }
 
-    private static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7';
+    static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7';
     private boolean isRec;
 
     public CalculatorEditable(CharSequence source) {

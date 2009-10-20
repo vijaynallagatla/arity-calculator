@@ -13,10 +13,11 @@ DX=$PLATFORM/tools/dx
 AJAR=$PLATFORM/android.jar
 PKRES=bin/resource.ap_
 PROGUARD=/home/preda/proguard/lib/proguard.jar
-OUT=$NAME-unalign.apk
-ALIGNOUT=$NAME.apk
-
+OUT=bin/$NAME-unalign.apk
+ALIGNOUT=bin/$NAME.apk
+set -e
 mkdir -p bin/classes gen
+rm -f $OUT $ALIGNOUT
 
 echo aapt
 $AAPT package -f -m -J gen -M AndroidManifest.xml -S res -I $AJAR -F $PKRES
@@ -31,10 +32,10 @@ echo dx
 $DX --dex --output=bin/classes.dex bin/obfuscated.jar 
 
 echo apkbuilder
-apkbuilder bin/$OUT -u -z $PKRES -f bin/classes.dex
+apkbuilder $OUT -u -z $PKRES -f bin/classes.dex
 
 echo jarsigner
-jarsigner -keystore $KEYSTORE bin/$OUT $KEYALIAS
+jarsigner -keystore $KEYSTORE $OUT $KEYALIAS
 
 echo zipalign
-zipalign -f 4 bin/$OUT bin/$ALIGNOUT
+zipalign -f 4 $OUT $ALIGNOUT
