@@ -1,4 +1,4 @@
--keep public class calculator.Calculator { public *; }
+-keep public class * extends android.app.Activity
 -dontskipnonpubliclibraryclasses
 -optimizationpasses 2
 -printmapping map.txt
