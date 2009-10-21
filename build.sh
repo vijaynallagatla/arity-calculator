@@ -2,7 +2,7 @@
 
 NAME=Arity
 SRCS=src/calculator/Calculator.java
-LIBS=libs/arity-1.3.4.jar
+LIBS=`find libs -name "*.jar"`
 KEYSTORE=/home/preda/cheie/and
 KEYALIAS=and
 
@@ -23,7 +23,7 @@ echo aapt
 $AAPT package -f -m -J gen -M AndroidManifest.xml -S res -I $AJAR -F $PKRES
 
 echo javac
-javac -d bin/classes -classpath bin/classes:$LIBS -sourcepath src:gen -target 1.5 -bootclasspath $AJAR -g $SRCS
+javac -d bin/classes -classpath bin/classes:$LIBS -sourcepath src:gen -target 1.5 -bootclasspath $AJAR $SRCS
 
 echo proguard
 java -jar $PROGUARD -injars $LIBS:bin/classes -outjar bin/obfuscated.jar -libraryjars $AJAR @proguard.txt

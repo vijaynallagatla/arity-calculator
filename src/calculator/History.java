@@ -102,7 +102,6 @@ class History extends FileHandler {
     }
 
     String getText() {
-	Calculator.log("history text at pos " + pos + ' ' + currentEntry().editLine);
         return currentEntry().editLine;
     }    
 }

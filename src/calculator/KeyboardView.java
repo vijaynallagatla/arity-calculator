@@ -170,14 +170,15 @@ public class KeyboardView extends View {
         canvas.drawRect(x, y, x+cellw-.5f, y+cellh-.5f, downPaint);
     }
 
+    /*
     private boolean hasLargeClip(Canvas canvas, float x1, float y1) {
-        // log("clip: " + rect.left + ' ' + rect.top + ' ' + rect.right + ' ' + rect.bottom);
         return !(canvas.getClipBounds(rect) 
                  && (int)x1 - rect.left <= 1 
                  && (int)y1 - rect.top <= 1 
                  && rect.right - (int)(x1 + cellw) <= 1
                  && rect.bottom - (int)(y1 + cellh) <= 1);
     }
+    */
 
     public void draw(Canvas canvas) {
         super.draw(canvas);
@@ -194,7 +195,6 @@ public class KeyboardView extends View {
 
     private static final float DELTAY = 8;
     public boolean onTouchEvent(MotionEvent event) {
-        // Calculator.log("touch " + event + ' ' + this);
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             downX = event.getX();
             float y = event.getY();
@@ -234,7 +234,6 @@ public class KeyboardView extends View {
         float y1 = getY(line);
         int x2 = (int)(x1+cellw);
         int y2 = (int)(y1+cellh);
-        Calculator.log("invalidate " + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2);
         invalidate((int)x1, (int)y1, x2, y2);
         // log("invalidate " + x + ' '  + y + ' ' + ((int)x1) + ' ' + ((int)y1) + ' ' + x2 + ' ' + y2);
     }

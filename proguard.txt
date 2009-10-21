@@ -2,5 +2,6 @@
 -keep public class * extends android.view.View { public <init>(...); }
 -dontskipnonpubliclibraryclasses
 -optimizationpasses 2
--printmapping map.txt
 -flattenpackagehierarchy
+-keepattributes SourceFile,LineNumberTable
+-printmapping map.txt

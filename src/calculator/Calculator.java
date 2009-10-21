@@ -207,7 +207,6 @@ public class Calculator extends Activity implements TextWatcher,
 
     // OnKeyListener
     public boolean onKey(View v, int keyCode, KeyEvent event) {
-        log("key " + keyCode + ' ' + event);
         int action = event.getAction();
         if (action == KeyEvent.ACTION_DOWN) {
             switch (keyCode) {
@@ -249,9 +248,11 @@ public class Calculator extends Activity implements TextWatcher,
             }
         };
 
+    /*
     static void log(String mes) {
         Log.d("***", mes);
     }
+    */
 
     void evaluate() {
         String text = input.getText().toString();
@@ -348,18 +349,14 @@ public class Calculator extends Activity implements TextWatcher,
     */
 
     void onUp() {
-	log("up from " + history.pos);
         if (history.moveUp(input.getText().toString())) {
-	    log("move up true");
             changeInput(history.getText());
             // updateChecked();
         }
     }
 
     void onDown() {
-	log("down from " + history.pos);
         if (history.moveDown(input.getText().toString())) {
-	    log("move down true");
             changeInput(history.getText());
             // updateChecked();
         }
