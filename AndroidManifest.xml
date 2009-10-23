@@ -9,12 +9,17 @@
     <activity android:name="calculator.Calculator"
               android:label="Arity"
               android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+              android:configChanges="orientation|keyboard|keyboardHidden"
               >
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <activity android:name="calculator.ShowGraph"
+              android:label="Graph"
+              android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+              />
     <activity android:name="calculator.ListDefs" android:label="User definitions" />
     <activity android:name="calculator.ListBuiltins" android:label="Built-in definitions" />
   </application>

@@ -16,8 +16,9 @@ PROGUARD=/home/preda/proguard/lib/proguard.jar
 OUT=bin/$NAME-unalign.apk
 ALIGNOUT=bin/$NAME.apk
 set -e
+
+rm -rf bin
 mkdir -p bin/classes gen
-rm -f $OUT $ALIGNOUT
 
 echo aapt
 $AAPT package -f -m -J gen -M AndroidManifest.xml -S res -I $AJAR -F $PKRES

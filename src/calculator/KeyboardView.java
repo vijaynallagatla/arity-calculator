@@ -52,19 +52,18 @@ public class KeyboardView extends View {
         calculator = (Calculator) context;        
     }
     
-    void init(char[][] keys, KeyboardView aboveView) {
-        this.aboveView = aboveView;
+    void init(char[][] keys) {
         this.keys = keys;
         nLine = keys.length;
         nCol = keys[0].length;
     }
-    
-    static void log(String mes) {
-        Log.d("***", mes);
-    }
 
+    void setAboveView(KeyboardView aboveView) {
+        this.aboveView = aboveView;
+    }
+    
     protected void onSizeChanged(int w, int h, int ow, int oh) {
-        log("size " + w + ' ' + h);
+        Calculator.log("size " + w + ' ' + h);
         width = w;
         height = h;
 
@@ -94,8 +93,8 @@ public class KeyboardView extends View {
                 final char c = lineKeys[col];
                 final int backColor = (('a' <= c && c <= 'z') || c == Calculator.PI) ? 0xff303030 :
                     (('0' <= c && c <= '9') || c == '.') ? 0xff303030 :
-                    (c == 'E' || c == 'C') ? 0xff306060 :
-                    (c == '+' || c == '=' || c == '\u2212' || c == '\u00d7' || c == '\u00f7') ? 0xff808080 :
+                    (c == 'E' || c == 'C' || c == Calculator.ARROW) ? 0xff306060 :
+                    (c == '+' || c == '\u2212' || c == '\u00d7' || c == '\u00f7') ? 0xff808080 :
                     0xffb0b0b0;
                 linePaint.setColor(backColor);
                 canvas.drawRect(x1, y1, x1+cellw, y1+cellh, linePaint);
@@ -208,13 +207,7 @@ public class KeyboardView extends View {
                 downCol = getCol(downX);
                 invalidateCell(downLine, downCol);
                 char key = keys[downLine][downCol];
-                if (key == 'E') {
-                    calculator.doEnter();
-                } else if (key == 'C') {
-                    calculator.doBackspace();
-                } else {
-                    calculator.onKey(key);
-                }
+                calculator.onKey(key);
             }
         } else if (event.getAction() == MotionEvent.ACTION_UP) {
             if (isDown) {

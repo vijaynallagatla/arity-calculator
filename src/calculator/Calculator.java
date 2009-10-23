@@ -33,6 +33,9 @@ public class Calculator extends Activity implements TextWatcher,
 						    View.OnKeyListener,
 						    AdapterView.OnItemClickListener
 {
+    static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7', SQRT = '\u221a', PI = '\u03c0', 
+        UP_ARROW = '\u21e7', DN_ARROW = '\u21e9', ARROW = '\u21f3';
+
     private static final int MSG_INPUT_CHANGED = 1;
     private static final String INFINITY = "Infinity";
     private static final String INFINITY_UNICODE = "\u221e";
@@ -40,6 +43,7 @@ public class Calculator extends Activity implements TextWatcher,
     private TextView result;
     private EditText input;
     private ListView historyView;
+    private GraphView graphView;
     private History history;
     private HistoryAdapter adapter;
     private Symbols symbols = new Symbols();
@@ -47,18 +51,18 @@ public class Calculator extends Activity implements TextWatcher,
     private int nDigits = 0;
     private boolean pendingClearResult;
     private String[] builtins;
-
-    static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7', SQRT = '\u221a', PI = '\u03c0';
+    private boolean isAlphaVisible;
+    private KeyboardView alpha, digits;
 
     private static final char[][] ALPHA = {
         {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'},
         {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'},
         {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'p', PI },
-        {'(', ',', ')', '^', '!', SQRT, '%', ' ', ' ', '^'},
+        {'(', ',', ')', '^', '!', SQRT, '%', ' ', '=', '^'},
     };
 
     private static final char[][] DIGITS = {
-        {'7', '8', '9', TIMES, DIV, '='},
+        {'7', '8', '9', TIMES, DIV, ARROW},
         {'4', '5', '6', '+', MINUS, 'C'},
         {'1', '2', '3', '0', '.',   'E'},
     };
@@ -73,43 +77,54 @@ public class Calculator extends Activity implements TextWatcher,
         {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 'E'},
     };
 
-    @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
+    public void onConfigurationChanged(Configuration config) {
+        super.onConfigurationChanged(config);
+        internalConfigChange(config);
+    }
 
-        Configuration config = getResources().getConfiguration();
+    private void internalConfigChange(Configuration config) {
+        setContentView(R.layout.main);        
         final boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
         // final boolean hasKeyboard = config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
         
-        KeyboardView alpha = (KeyboardView) findViewById(R.id.alpha);
-        KeyboardView digits = (KeyboardView) findViewById(R.id.digits);
+        alpha = (KeyboardView) findViewById(R.id.alpha);
+        digits = (KeyboardView) findViewById(R.id.digits);
         if (isLandscape) {                        
-            digits.init(DIGITS2, null);
+            digits.init(DIGITS2);
         } else {
-            alpha.init(ALPHA, null);
-            digits.init(DIGITS, alpha);
+            alpha.init(ALPHA);
+            digits.init(DIGITS);
+            updateAlpha();
         }
 
         result = (TextView) findViewById(R.id.result);
 
+        Editable oldText = input != null ? input.getText() : null;
         input  = (EditText) findViewById(R.id.input);
         input.setOnKeyListener(this);
         input.addTextChangedListener(this);
         input.setEditableFactory(new CalculatorEditable.Factory());            
         input.setInputType(0);
-
-        history = new History(this);
-        adapter = new HistoryAdapter(this, history);
 	changeInput(history.getText());
-        
+        if (oldText != null) {
+            input.setText(oldText);
+        }
+        input.requestFocus();
+        // graphView = (GraphView) findViewById(R.id.graph);
         historyView = (ListView) findViewById(R.id.history);
         if (historyView != null) {
             historyView.setAdapter(adapter);
 	    historyView.setOnItemClickListener(this);
         }
+    }
 
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        history = new History(this);
+        adapter = new HistoryAdapter(this, history);
+        internalConfigChange(getResources().getConfiguration());
+        
 	Symbol[] syms = symbols.getTopFrame();
 	int size = syms.length;
 	builtins = new String[size];
@@ -174,7 +189,11 @@ public class Calculator extends Activity implements TextWatcher,
 	    i.putExtra("", builtins);
 	    startActivity(i);
 	    break;
-	}
+        }
+            
+        case R.id.graph:
+            startActivity(new Intent(this, ShowGraph.class));
+            break;
 	    
 	default:
 	    return false;
@@ -248,11 +267,11 @@ public class Calculator extends Activity implements TextWatcher,
             }
         };
 
-    /*
     static void log(String mes) {
-        Log.d("***", mes);
+        if (true) {
+            Log.d("***", mes);
+        }
     }
-    */
 
     void evaluate() {
         String text = input.getText().toString();
@@ -295,11 +314,25 @@ public class Calculator extends Activity implements TextWatcher,
         return (int) (width / oneDigitWidth);
     }
 
+    private void updateAlpha() {
+        alpha.setVisibility(isAlphaVisible ? View.VISIBLE: View.GONE);
+        digits.setAboveView(isAlphaVisible ? alpha : null);        
+    }
+
     private StringBuilder oneChar = new StringBuilder(" ");
     void onKey(char key) {
-        int cursor = input.getSelectionStart();
-        oneChar.setCharAt(0, key);
-        input.getText().insert(cursor, oneChar);
+        if (key == 'E') {
+            doEnter();
+        } else if (key == 'C') {
+            doBackspace();
+        } else if (key == ARROW) {
+            isAlphaVisible = !isAlphaVisible;
+            updateAlpha();
+        } else {
+            int cursor = input.getSelectionStart();
+            oneChar.setCharAt(0, key);
+            input.getText().insert(cursor, oneChar);
+        }
     }
 
     void onEnter() {

@@ -37,14 +37,5 @@
      android:choiceMode="singleChoice"
      android:scrollbarStyle="outsideInset"
     />
-<calculator.KeyboardView
-     android:id="@+id/alpha"
-     android:layout_width="fill_parent"
-     android:layout_height="120dip"
-    />
-<calculator.KeyboardView
-     android:id="@+id/digits"
-     android:layout_width="fill_parent"
-     android:layout_height="141dip"
-    />
+<include layout="@layout/keyboard" />
 </LinearLayout>

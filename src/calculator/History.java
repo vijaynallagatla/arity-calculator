@@ -7,7 +7,7 @@ import java.io.*;
 import java.util.ArrayList;
 
 class History extends FileHandler {
-    private static final int SIZE_LIMIT = 50;
+    private static final int SIZE_LIMIT = 30;
     ArrayList<HistoryEntry> entries = new ArrayList<HistoryEntry>();
     int pos;
     HistoryEntry aboveTop = new HistoryEntry("", "");
