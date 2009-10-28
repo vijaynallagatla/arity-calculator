@@ -40,13 +40,15 @@ public class Calculator extends Activity implements TextWatcher,
     private static final String INFINITY = "Infinity";
     private static final String INFINITY_UNICODE = "\u221e";
 
+    static Symbols symbols = new Symbols();
+    static Function function;
+
     private TextView result;
     private EditText input;
     private ListView historyView;
     private GraphView graphView;
     private History history;
-    private HistoryAdapter adapter;
-    private Symbols symbols = new Symbols();
+    private HistoryAdapter adapter;   
     private Defs defs;
     private int nDigits = 0;
     private boolean pendingClearResult;
@@ -110,7 +112,7 @@ public class Calculator extends Activity implements TextWatcher,
             input.setText(oldText);
         }
         input.requestFocus();
-        // graphView = (GraphView) findViewById(R.id.graph);
+        graphView = (GraphView) findViewById(R.id.graph);
         historyView = (ListView) findViewById(R.id.history);
         if (historyView != null) {
             historyView.setAdapter(adapter);
@@ -192,7 +194,9 @@ public class Calculator extends Activity implements TextWatcher,
         }
             
         case R.id.graph:
-            startActivity(new Intent(this, ShowGraph.class));
+            if (function != null) {
+                startActivity(new Intent(this, ShowGraph.class));
+            }
             break;
 	    
 	default:
@@ -213,6 +217,7 @@ public class Calculator extends Activity implements TextWatcher,
         handler.sendEmptyMessageDelayed(MSG_INPUT_CHANGED, 250);
 	if (pendingClearResult && s.length() != 0) {
 	    result.setText(null);
+            showGraph(null);
 	    pendingClearResult = false;
 	}
     }
@@ -297,12 +302,12 @@ public class Calculator extends Activity implements TextWatcher,
 
     private String evaluate(String text) {
         try {
-	    if (Symbols.isDefinition(text)) {
-		Function f = symbols.compile(text);
-		return f.arity()==0 ? formatEval(f.evalComplex()) : "function";
-	    } else {
-		return formatEval(symbols.evalComplex(text));
-	    }
+            Function f = symbols.compile(text);
+            int arity = f.arity();
+            if (arity == 1) {
+                showGraph(f);
+            }
+            return arity==0 ? formatEval(f.evalComplex()) : "function";
         } catch (SyntaxException e) {
             return null;
         }
@@ -339,6 +344,23 @@ public class Calculator extends Activity implements TextWatcher,
 	onEnter(input.getText().toString());
     }
 
+    private void showGraph(Function f) {
+        boolean graphIsVisible = graphView.getVisibility() == View.VISIBLE;
+        if (f == null) {
+            if (graphIsVisible) {
+                graphView.setVisibility(View.GONE);
+                historyView.setVisibility(View.VISIBLE);
+            }
+        } else {            
+            graphView.setFunction(f);
+            if (!graphIsVisible) {
+                historyView.setVisibility(View.GONE);
+                graphView.setVisibility(View.VISIBLE);
+            }
+            graphView.invalidate();
+        }
+    }
+
     void onEnter(String text) {
 	boolean historyChanged = false;
 	try {
@@ -348,11 +370,18 @@ public class Calculator extends Activity implements TextWatcher,
 		defs.add(text);
 	    }
 	    Function f = fan.function;
-	    historyChanged = f.arity() == 0 ?
+            int arity = f.arity();
+	    historyChanged = arity == 0 ?
 		history.onEnter(text, formatEval(f.evalComplex())) :
 		history.onEnter(text, null);
+            if (arity == 1) {
+                showGraph(f);
+            } else {
+                showGraph(null);
+            }
 	} catch (SyntaxException e) {
 	    historyChanged = history.onEnter(text, null);
+            showGraph(null);
 	}
         if (historyChanged) {
             adapter.notifyDataSetInvalidated();
