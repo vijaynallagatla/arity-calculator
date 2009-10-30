@@ -143,8 +143,8 @@ public class Calculator extends Activity implements TextWatcher,
 		"sqrt(pi)\u00f70.5!",
 		"e^(i\u00d7pi)",
 		"ln(e^100)",
-		"bmi(w,h)=w/h^2",
-		"bmi(75,1.82)",
+                "sin(x)",
+                "x^2"
 	    };
 	    nDigits = 10;
 	    for (String s : init) {
@@ -179,15 +179,9 @@ public class Calculator extends Activity implements TextWatcher,
 	    break;
 	}
 
+            /*
 	case R.id.list_builtins: {
 	    Intent i = new Intent(this, ListBuiltins.class);
-	    //String[] list = symbols.getDictionary();
-	    /*
-	    for (Symbol symbol : predefined) {
-		String str = symbol.getName() + ' ' + symbol.getArity() + ' ' + symbol.getComment();
-		list.add(str);
-	    }
-	    */
 	    i.putExtra("", builtins);
 	    startActivity(i);
 	    break;
@@ -197,8 +191,9 @@ public class Calculator extends Activity implements TextWatcher,
             if (function != null) {
                 startActivity(new Intent(this, ShowGraph.class));
             }
-            break;
-	    
+            break;	    
+            */
+
 	default:
 	    return false;
 	}
@@ -374,15 +369,18 @@ public class Calculator extends Activity implements TextWatcher,
 	    historyChanged = arity == 0 ?
 		history.onEnter(text, formatEval(f.evalComplex())) :
 		history.onEnter(text, null);
+            /*
             if (arity == 1) {
                 showGraph(f);
             } else {
                 showGraph(null);
             }
+            */
 	} catch (SyntaxException e) {
 	    historyChanged = history.onEnter(text, null);
-            showGraph(null);
+            // showGraph(null);
 	}
+        showGraph(null);
         if (historyChanged) {
             adapter.notifyDataSetInvalidated();
         }
@@ -397,6 +395,9 @@ public class Calculator extends Activity implements TextWatcher,
 	} else {
 	    pendingClearResult = true;
 	}
+        if (result.getText().equals("function")) {
+            result.setText(null);
+        }
     }
     
     /*
