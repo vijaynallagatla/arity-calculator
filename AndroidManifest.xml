@@ -21,6 +21,6 @@
               android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
               />
     <activity android:name="calculator.ListDefs" android:label="User definitions" />
-    <activity android:name="calculator.ListBuiltins" android:label="Built-in definitions" />
+    <activity android:name="calculator.Help" android:label="Arity Calculator" />
   </application>
 </manifest> 

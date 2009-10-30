@@ -21,7 +21,7 @@ rm -rf bin
 mkdir -p bin/classes gen
 
 echo aapt
-$AAPT package -f -m -J gen -M AndroidManifest.xml -S res -I $AJAR -F $PKRES
+$AAPT package -f -m -J gen -M AndroidManifest.xml -S res -A assets -I $AJAR -F $PKRES
 
 echo javac
 javac -d bin/classes -classpath bin/classes:$LIBS -sourcepath src:gen -target 1.5 -bootclasspath $AJAR $SRCS
@@ -36,7 +36,7 @@ echo apkbuilder
 apkbuilder $OUT -u -z $PKRES -f bin/classes.dex
 
 echo jarsigner
-jarsigner -keystore $KEYSTORE $OUT $KEYALIAS
+jarsigner -keystore $KEYSTORE $OUT $KEYALIAS 
 
 echo zipalign
 zipalign -f 4 $OUT $ALIGNOUT

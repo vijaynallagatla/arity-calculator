@@ -179,6 +179,10 @@ public class Calculator extends Activity implements TextWatcher,
 	    break;
 	}
 
+        case R.id.help:
+            startActivity(new Intent(this, Help.class));
+            break;
+            
             /*
 	case R.id.list_builtins: {
 	    Intent i = new Intent(this, ListBuiltins.class);
