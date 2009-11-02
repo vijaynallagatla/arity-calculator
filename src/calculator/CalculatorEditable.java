@@ -34,7 +34,7 @@ class CalculatorEditable extends SpannableStringBuilder {
     }
 
     private boolean isOperator(char c) {
-	return "\u2212\u00d7\u00f7+-/*=^%,".indexOf(c) != -1;
+	return "\u2212\u00d7\u00f7+-/*=^,".indexOf(c) != -1;
     }
 
     private SpannableStringBuilder internalReplace(int start, int end, char c) {
@@ -69,7 +69,7 @@ class CalculatorEditable extends SpannableStringBuilder {
         
 	//don't allow leading operator + * /
 	if (start == 0 && isOperator(c) && c != MINUS) {
-	    return super.replace(start, end, "");
+	    return super.replace(start, end, "ans" + c);
 	}
 
         //allow at most one '='

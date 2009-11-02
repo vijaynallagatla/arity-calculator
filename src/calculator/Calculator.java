@@ -57,16 +57,17 @@ public class Calculator extends Activity implements TextWatcher,
     private KeyboardView alpha, digits;
 
     private static final char[][] ALPHA = {
-        {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'},
-        {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'},
-        {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'p', PI },
-        {'(', ',', ')', '^', '!', SQRT, '%', ' ', '=', '^'},
+        {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i'},
+        {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k'},
+        {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'l'},
+        {'o', 'p', ' ', ' ',  '=', ',', '!', '#'},
     };
 
     private static final char[][] DIGITS = {
-        {'7', '8', '9', TIMES, DIV, ARROW},
-        {'4', '5', '6', '+', MINUS, 'C'},
-        {'1', '2', '3', '0', '.',   'E'},
+        {'7', '8', '9', SQRT, '^', '%'},
+        {'4', '5', '6', TIMES, DIV, ARROW},
+        {'1', '2', '3', '+', MINUS, 'C'},
+        {'0', '.', PI, '(', ')', 'E'},
     };
 
     private static final char[][] ALPHA2 = {
@@ -215,7 +216,9 @@ public class Calculator extends Activity implements TextWatcher,
         handler.removeMessages(MSG_INPUT_CHANGED);
         handler.sendEmptyMessageDelayed(MSG_INPUT_CHANGED, 250);
 	if (pendingClearResult && s.length() != 0) {
-	    result.setText(null);
+            if (!(s.length() == 4 && s.toString().startsWith("ans"))) {
+                result.setText(null);
+            }
             showGraph(null);
 	    pendingClearResult = false;
 	}
@@ -370,19 +373,16 @@ public class Calculator extends Activity implements TextWatcher,
 	    }
 	    Function f = fan.function;
             int arity = f.arity();
-	    historyChanged = arity == 0 ?
-		history.onEnter(text, formatEval(f.evalComplex())) :
-		history.onEnter(text, null);
-            /*
-            if (arity == 1) {
-                showGraph(f);
-            } else {
-                showGraph(null);
+            Complex value = null;
+            if (arity == 0) {
+                value = f.evalComplex();
+                symbols.define("ans", value);
             }
-            */
+	    historyChanged = arity == 0 ?
+		history.onEnter(text, formatEval(value)) :
+		history.onEnter(text, null);
 	} catch (SyntaxException e) {
 	    historyChanged = history.onEnter(text, null);
-            // showGraph(null);
 	}
         showGraph(null);
         if (historyChanged) {

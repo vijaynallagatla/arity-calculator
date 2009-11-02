@@ -3,11 +3,11 @@
 <calculator.KeyboardView
      android:id="@+id/alpha"
      android:layout_width="fill_parent"
-     android:layout_height="120dip"
+     android:layout_height="156dip"
     />
 <calculator.KeyboardView
      android:id="@+id/digits"
      android:layout_width="fill_parent"
-     android:layout_height="141dip"
+     android:layout_height="184dip"
     />
 </merge>

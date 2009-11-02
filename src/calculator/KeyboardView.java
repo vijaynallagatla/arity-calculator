@@ -91,11 +91,13 @@ public class KeyboardView extends View {
                 final float x1 = getX(col);
                 final float x = x1 + cellw/2;
                 final char c = lineKeys[col];
-                final int backColor = (('a' <= c && c <= 'z') || c == Calculator.PI) ? 0xff303030 :
-                    (('0' <= c && c <= '9') || c == '.') ? 0xff303030 :
-                    (c == 'E' || c == 'C' || c == Calculator.ARROW) ? 0xff306060 :
+                final int backColor = (('a' <= c && c <= 'z') || c == ' ') ? 0xff404040 :
+                    (('0' <= c && c <= '9') || c == '.' || c == Calculator.PI) ? 0xff303030 :
+                    (c == 'E' || c == 'C' || c == Calculator.ARROW) ? 0xff306060 : 0xff808080;
+                /*
                     (c == '+' || c == '\u2212' || c == '\u00d7' || c == '\u00f7') ? 0xff808080 :
                     0xffb0b0b0;
+                */
                 linePaint.setColor(backColor);
                 canvas.drawRect(x1, y1, x1+cellw, y1+cellh, linePaint);
 
@@ -225,8 +227,8 @@ public class KeyboardView extends View {
     private void invalidateCell(int line, int col) {
         float x1 = getX(col);
         float y1 = getY(line);
-        int x2 = (int)(x1+cellw);
-        int y2 = (int)(y1+cellh);
+        int x2 = (int)(x1+cellw+1);
+        int y2 = (int)(y1+cellh+1);
         invalidate((int)x1, (int)y1, x2, y2);
         // log("invalidate " + x + ' '  + y + ' ' + ((int)x1) + ' ' + ((int)y1) + ' ' + x2 + ' ' + y2);
     }
