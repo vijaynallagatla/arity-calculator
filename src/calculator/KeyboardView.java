@@ -38,6 +38,7 @@ public class KeyboardView extends View {
     private boolean isDown;
     private float downX, downY;
     private int downLine, downCol;
+    private float downCW, downCH;
     private Rect rect = new Rect();
     private float cellw, cellh;
     private Calculator calculator;
@@ -89,25 +90,31 @@ public class KeyboardView extends View {
             char[] lineKeys = keys[line];
             for (int col = 0; col < nCol; ++col) {
                 final float x1 = getX(col);
-                final float x = x1 + cellw/2;
                 final char c = lineKeys[col];
-                final int backColor = (('a' <= c && c <= 'z') || c == ' ') ? 0xff404040 :
-                    (('0' <= c && c <= '9') || c == '.' || c == Calculator.PI) ? 0xff303030 :
+                if ((col > 0 && c == lineKeys[col-1]) || (line > 0 && c == keys[line-1][col])) {
+                    continue;
+                }
+                float cw = col < nCol-1 && c == lineKeys[col+1] ? cellw+cellw : cellw;
+                float ch = line < nLine-1 && c == keys[line+1][col] ? cellh+cellh : cellh;
+                final float x = x1 + cw/2;
+                final int backColor = (('a' <= c && c <= 'z') 
+                                       || c == ' ' || c == Calculator.PI) ? 0xff404040 :
+                    (('0' <= c && c <= '9') || c == '.') ? 0xff303030 :
                     (c == 'E' || c == 'C' || c == Calculator.ARROW) ? 0xff306060 : 0xff808080;
                 /*
                     (c == '+' || c == '\u2212' || c == '\u00d7' || c == '\u00f7') ? 0xff808080 :
                     0xffb0b0b0;
                 */
                 linePaint.setColor(backColor);
-                canvas.drawRect(x1, y1, x1+cellw, y1+cellh, linePaint);
+                canvas.drawRect(x1, y1, x1+cw, y1+ch, linePaint);
 
                 switch (c) {
                 case 'E':
-                    drawDrawable(canvas, R.drawable.enter, x1, y1);
+                    drawDrawable(canvas, R.drawable.enter, x1, y1, cw, ch);
                     break;
 
                 case 'C':
-                    drawDrawable(canvas, R.drawable.delete, x1, y1);
+                    drawDrawable(canvas, R.drawable.delete, x1, y1, cw, ch);
                     break;
 
                 default:
@@ -117,6 +124,7 @@ public class KeyboardView extends View {
             }
         }
 
+        /*
         linePaint.setStrokeWidth(0);
         linePaint.setColor(0xff000000);
         for (int line = 0; line <= nLine; ++line) {
@@ -127,14 +135,15 @@ public class KeyboardView extends View {
             final float x = getX(col);
             canvas.drawLine(x, 0, x, height, linePaint);
         }
+        */
     }
 
-    private void drawDrawable(Canvas canvas, int id, float x, float y) {
+    private void drawDrawable(Canvas canvas, int id, float x, float y, float cw, float ch) {
         Drawable d = calculator.getResources().getDrawable(id);
         int iw = d.getIntrinsicWidth();
         int ih = d.getIntrinsicHeight();
-        int x1 = Math.round(x + (cellw - iw)/2.f);
-        int y1 = Math.round(y + (cellh - ih)/2.f);
+        int x1 = Math.round(x + (cw - iw)/2.f);
+        int y1 = Math.round(y + (ch - ih)/2.f);
         d.setBounds(x1, y1, x1 + iw, y1 + ih);
         d.draw(canvas);
     }
@@ -168,7 +177,7 @@ public class KeyboardView extends View {
     }
 
     private void drawDown(Canvas canvas, float x, float y) {
-        canvas.drawRect(x, y, x+cellw-.5f, y+cellh-.5f, downPaint);
+        canvas.drawRect(x, y, x+downCW-.5f, y+downCH-.5f, downPaint);
     }
 
     /*
@@ -207,6 +216,15 @@ public class KeyboardView extends View {
                 downY = y >= DELTAY ? y - DELTAY : 0;
                 downLine = getLine(downY);
                 downCol = getCol(downX);
+                downCW = cellw;
+                downCH = cellh;
+                if (downLine == 3 && downCol <= 1 && isLarge) {
+                    downCol = 0;
+                    downCW = cellw + cellw;
+                } else if (downCol == 5 && downLine >= 2 && isLarge) {
+                    downLine = 2;
+                    downCH = cellh + cellh;
+                }
                 invalidateCell(downLine, downCol);
                 char key = keys[downLine][downCol];
                 calculator.onKey(key);
@@ -227,8 +245,8 @@ public class KeyboardView extends View {
     private void invalidateCell(int line, int col) {
         float x1 = getX(col);
         float y1 = getY(line);
-        int x2 = (int)(x1+cellw+1);
-        int y2 = (int)(y1+cellh+1);
+        int x2 = (int)(x1+downCW+1);
+        int y2 = (int)(y1+downCH+1);
         invalidate((int)x1, (int)y1, x2, y2);
         // log("invalidate " + x + ' '  + y + ' ' + ((int)x1) + ' ' + ((int)y1) + ' ' + x2 + ' ' + y2);
     }

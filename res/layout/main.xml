@@ -36,6 +36,7 @@
      android:cacheColorHint="#ff000000"
      android:choiceMode="singleChoice"
      android:scrollbarStyle="outsideInset"
+     android:scrollbars="none"
     />
 <calculator.GraphView
      android:id="@+id/graph"

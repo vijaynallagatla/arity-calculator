@@ -57,17 +57,17 @@ public class Calculator extends Activity implements TextWatcher,
     private KeyboardView alpha, digits;
 
     private static final char[][] ALPHA = {
-        {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i'},
+        {'q', 'w', PI,  ' ', '=', ',', '!', '#'},
+        {'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
         {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k'},
         {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'l'},
-        {'o', 'p', ' ', ' ',  '=', ',', '!', '#'},
     };
 
     private static final char[][] DIGITS = {
-        {'7', '8', '9', SQRT, '^', '%'},
-        {'4', '5', '6', TIMES, DIV, ARROW},
-        {'1', '2', '3', '+', MINUS, 'C'},
-        {'0', '.', PI, '(', ')', 'E'},
+        {'7', '8', '9', '%', '^', ARROW},
+        {'4', '5', '6','(', ')', 'C'},
+        {'1', '2', '3', TIMES, DIV, 'E'},
+        {'0', '0', '.', '+', MINUS, 'E'},
     };
 
     private static final char[][] ALPHA2 = {
