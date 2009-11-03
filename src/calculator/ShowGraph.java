@@ -32,6 +32,8 @@ public class ShowGraph extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.graph);
+        GraphView graphView = (GraphView) findViewById(R.id.graph);
+        graphView.setFunction(Calculator.graphedFunction, true);
     }
 
     public void onPause() {

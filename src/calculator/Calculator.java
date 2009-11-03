@@ -31,6 +31,7 @@ import org.javia.arity.*;
 
 public class Calculator extends Activity implements TextWatcher, 
 						    View.OnKeyListener,
+                                                    View.OnClickListener,
 						    AdapterView.OnItemClickListener
 {
     static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7', SQRT = '\u221a', PI = '\u03c0', 
@@ -55,6 +56,7 @@ public class Calculator extends Activity implements TextWatcher,
     private String[] builtins;
     private boolean isAlphaVisible;
     private KeyboardView alpha, digits;
+    static Function graphedFunction;
 
     private static final char[][] ALPHA = {
         {'q', 'w', PI,  ' ', '=', ',', '!', '#'},
@@ -114,6 +116,7 @@ public class Calculator extends Activity implements TextWatcher,
         }
         input.requestFocus();
         graphView = (GraphView) findViewById(R.id.graph);
+        graphView.setOnClickListener(this);
         historyView = (ListView) findViewById(R.id.history);
         if (historyView != null) {
             historyView.setAdapter(adapter);
@@ -157,7 +160,7 @@ public class Calculator extends Activity implements TextWatcher,
 
     public void onPause() {
         super.onPause();
-	onUp();
+	history.updateEdited(input.getText().toString());
         history.save();
 	defs.save();
     }
@@ -203,6 +206,14 @@ public class Calculator extends Activity implements TextWatcher,
 	    return false;
 	}
 	return true;
+    }
+
+    //OnClickListener
+    public void onClick(View target) {
+        if (target == graphView) {
+            Intent i = new Intent(this, ShowGraph.class);
+            startActivity(i);
+        }
     }
 
     // OnItemClickListener
@@ -354,7 +365,8 @@ public class Calculator extends Activity implements TextWatcher,
                 historyView.setVisibility(View.VISIBLE);
             }
         } else {            
-            graphView.setFunction(f);
+            graphView.setFunction(f, false);
+            graphedFunction = f;
             if (!graphIsVisible) {
                 historyView.setVisibility(View.GONE);
                 graphView.setVisibility(View.VISIBLE);

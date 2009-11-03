@@ -205,7 +205,8 @@ public class KeyboardView extends View {
 
     private static final float DELTAY = 8;
     public boolean onTouchEvent(MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        int action = event.getAction();
+        if (action == MotionEvent.ACTION_DOWN) {
             downX = event.getX();
             float y = event.getY();
             if (y < DELTAY && aboveView != null) {
@@ -229,7 +230,7 @@ public class KeyboardView extends View {
                 char key = keys[downLine][downCol];
                 calculator.onKey(key);
             }
-        } else if (event.getAction() == MotionEvent.ACTION_UP) {
+        } else if (action == MotionEvent.ACTION_UP) {
             if (isDown) {
                 isDown = false;
                 invalidateCell(downLine, downCol);

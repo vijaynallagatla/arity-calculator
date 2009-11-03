@@ -83,8 +83,12 @@ class History extends FileHandler {
 	pos = entries.size() - listPos - 1;
     }
 
-    boolean moveUp(String text) {
+    void updateEdited(String text) {
         currentEntry().editLine = text;
+    }
+
+    boolean moveUp(String text) {
+        updateEdited(text);
         if (pos >= entries.size()) {
             return false;
         }
@@ -93,7 +97,7 @@ class History extends FileHandler {
     }
     
     boolean moveDown(String text) {
-        currentEntry().editLine = text;
+        updateEdited(text);
         if (pos <= 0) {
             return false;
         }

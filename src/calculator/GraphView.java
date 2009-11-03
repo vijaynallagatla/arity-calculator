@@ -34,24 +34,24 @@ import org.javia.arity.*;
 public class GraphView extends View {
     private int width, height;
     private Matrix matrix = new Matrix();
-    private Paint paint = new Paint(), textPaint = new Paint();
+    private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
     private Function function;
     private Data next = new Data(), graph = new Data();
     private boolean invalidated = true;
     private Bitmap bitmap;
+    private float gwidth = 8;
+    private boolean isFullScreen;
 
     public GraphView(Context context, AttributeSet attrs) {
         super(context, attrs);
         paint.setAntiAlias(false);
-
-        textPaint.setColor(0xff00b000);
-        textPaint.setTextSize(10);
         textPaint.setAntiAlias(true);
     }
 
-    void setFunction(Function f) {
+    void setFunction(Function f, boolean isFullScreen) {
         this.function = f;
         invalidated = true;
+        this.isFullScreen = isFullScreen;
     }
 
     protected void onSizeChanged(int w, int h, int ow, int oh) {
@@ -171,9 +171,8 @@ public class GraphView extends View {
     }
 
     private void drawBitmap() {
-        invalidated = false;
-
-        float maxX = 4;
+        invalidated = false;        
+        float maxX = gwidth/2;
         float minX = -maxX;
         float maxY = maxX * height / width;
         float minY = -maxY;
@@ -203,6 +202,8 @@ public class GraphView extends View {
         final float y2 = h2 + tickSize;
         paint.setColor(0xff00ff00);
         int v = (int)minX;
+        textPaint.setColor(0xff00b000);
+        textPaint.setTextSize(10);
         textPaint.setTextAlign(Paint.Align.CENTER);
         for (float x = ((int)minX - minX) * scale; x <= width; x += scale, ++v) {
             canvas.drawLine(x, y1, x, y2, paint);
@@ -231,5 +232,57 @@ public class GraphView extends View {
         paint.setAntiAlias(true);
         path.transform(matrix);
         canvas.drawPath(path, paint);
+        
+        if (isFullScreen) {
+            fillPaint.setColor(0x10000000);
+            canvas.drawRect(width-130, height-60, width-30, height-20, fillPaint);
+            textPaint.setColor(0xc0000000);
+            textPaint.setTextSize(22);
+            textPaint.setTextAlign(Paint.Align.CENTER);
+            canvas.drawText("\u2212", width-105, height-30, textPaint);
+            canvas.drawText("+", width-55, height-30, textPaint);
+        }
+    }
+
+    private void zoomOut() {
+        if (gwidth < 30) {
+            gwidth *= 2;
+            invalidated = true;
+            invalidate();
+        }
+    }
+
+    private void zoomIn() {
+        if (gwidth > 1f) {
+            gwidth /= 2;
+            invalidated = true;
+            invalidate();
+        }
+    }
+
+    public boolean onTouchEvent(MotionEvent event) {
+        if (isFullScreen) {
+            int action = event.getAction();
+            float x = event.getX();
+            float y = event.getY();
+            if (action == MotionEvent.ACTION_DOWN) {
+                if (y > height-60 && y < height-20) {
+                    if (x > width - 130 && x < width-80) {
+                        zoomIn();
+                        return true;
+                    } else if (x > width-80 && x < width-30) {
+                        zoomOut();
+                        return true;
+                    }
+                }
+            } else if (action == MotionEvent.ACTION_UP) {
+                
+            } else {
+                
+            }
+            return false;
+        } else {
+            return super.onTouchEvent(event);
+        }
     }
 }
