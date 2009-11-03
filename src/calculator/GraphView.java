@@ -91,7 +91,7 @@ public class GraphView extends View {
         final float scale = width / (maxX - minX);
         final float maxStep = 15.8976f / scale;
         final float minStep = .1f / scale;
-        Calculator.log("step min " + minStep + " max " + maxStep);
+        // Calculator.log("step min " + minStep + " max " + maxStep);
         final float ythresh = 1/scale;
         next.clear();
         graph.clear();

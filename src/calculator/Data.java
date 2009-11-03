@@ -11,7 +11,6 @@ class Data {
     void push(float x, float y) {
         if (size >= allocSize) {
             allocSize += allocSize;
-            Calculator.log("resize " + size + ' ' + allocSize);
             float[] a = new float[allocSize];
             System.arraycopy(xs, 0, a, 0, size);
             xs = a;
