@@ -1,17 +1,5 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-  <item android:id="@+id/list_defs"
-        android:title="User definitions" 
-	/>
-  <item android:id="@+id/help"
-        android:title="Help"
-        />
-
-  <!--
-  <item android:id="@+id/list_builtins"
-	android:title="Built-in definitions"
-	/>
-  <item android:id="@+id/graph"
-        android:title="Graph"
-        />
-  -->
+  <item android:id="@+id/list_defs" android:title="User definitions" />
+  <item android:id="@+id/clear_history" android:title="Clear history" />
+  <item android:id="@+id/help" android:title="Help" />
 </menu>

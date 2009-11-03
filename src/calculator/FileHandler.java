@@ -9,11 +9,13 @@ abstract class FileHandler {
     private String fileName;
     private Context context;
     private int version;
+    boolean fileNotFound;
 
     private DataInputStream openInput() throws IOException {
 	try {
 	    return new DataInputStream(new BufferedInputStream(context.openFileInput(fileName), 256));
 	} catch (FileNotFoundException e) {
+            fileNotFound = true;
 	    return null;
 	}
     }

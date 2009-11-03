@@ -53,7 +53,6 @@ public class Calculator extends Activity implements TextWatcher,
     private Defs defs;
     private int nDigits = 0;
     private boolean pendingClearResult;
-    private String[] builtins;
     private boolean isAlphaVisible;
     private KeyboardView alpha, digits;
     static Function graphedFunction;
@@ -133,16 +132,9 @@ public class Calculator extends Activity implements TextWatcher,
         
 	Symbol[] syms = symbols.getTopFrame();
 	int size = syms.length;
-	builtins = new String[size];
-	for (int i = 0; i < size; ++i) {
-	    String s = syms[i].getName();
-	    int arity = syms[i].getArity();
-	    String args = arity==0 ? "" : arity==1 ? "(x)" : arity==2 ? "(x,y)" : "(x,y,z)";
-	    builtins[i] = s + args;
-	}
 	symbols.pushFrame();
 	defs = new Defs(this, symbols);
-	if (history.pos == 0) {
+	if (history.fileNotFound) {
 	    String[] init = {
 		"sqrt(pi)\u00f70.5!",
 		"e^(i\u00d7pi)",
@@ -172,6 +164,13 @@ public class Calculator extends Activity implements TextWatcher,
         return true;
     }
     
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        menu.findItem(R.id.clear_history).setEnabled(history.size() > 0);
+        menu.findItem(R.id.list_defs).setEnabled(defs.size() > 0);
+        return true;
+    }
+
     public boolean onOptionsItemSelected(MenuItem item) {
 	super.onOptionsItemSelected(item);
 	int id = item.getItemId();
@@ -186,21 +185,12 @@ public class Calculator extends Activity implements TextWatcher,
         case R.id.help:
             startActivity(new Intent(this, Help.class));
             break;
-            
-            /*
-	case R.id.list_builtins: {
-	    Intent i = new Intent(this, ListBuiltins.class);
-	    i.putExtra("", builtins);
-	    startActivity(i);
-	    break;
-        }
-            
-        case R.id.graph:
-            if (function != null) {
-                startActivity(new Intent(this, ShowGraph.class));
-            }
-            break;	    
-            */
+
+        case R.id.clear_history:
+            history.clear();
+            history.save();
+            adapter.notifyDataSetInvalidated();
+            break;
 
 	default:
 	    return false;

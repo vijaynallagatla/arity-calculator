@@ -18,6 +18,10 @@ class Defs extends FileHandler {
 	load();
     }
 
+    int size() {
+        return lines.size();
+    }
+
     void doRead(DataInputStream is) throws IOException {
 	int size = is.readInt();
 	for (int i = 0; i < size; ++i) {

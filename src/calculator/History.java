@@ -16,14 +16,15 @@ class History extends FileHandler {
     History(Context context) {
 	super(context, "history", 1);
 	load();
-	/*
-	if (pos == 0) {
-	    entries.add(new HistoryEntry("ln(e^100)", "100"));
-	    entries.add(new HistoryEntry("e^(i\u00d7pi)", "-1"));
-	    entries.add(new HistoryEntry("sqrt(pi)\u00f70.5!", "2"));
-	    pos = entries.size();
-	}
-	*/
+    }
+
+    void clear() {
+        entries.clear();
+        pos = 0;
+    }
+
+    int size() {
+        return entries.size();
     }
 
     void doRead(DataInputStream is) throws IOException {

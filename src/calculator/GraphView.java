@@ -268,10 +268,10 @@ public class GraphView extends View {
             if (action == MotionEvent.ACTION_DOWN) {
                 if (y > height-60 && y < height-10) {
                     if (x > width - 140 && x < width-80) {
-                        zoomIn();
+                        zoomOut();
                         return true;
                     } else if (x > width-80 && x < width-20) {
-                        zoomOut();
+                        zoomIn();
                         return true;
                     }
                 }
