@@ -266,11 +266,11 @@ public class GraphView extends View {
             float x = event.getX();
             float y = event.getY();
             if (action == MotionEvent.ACTION_DOWN) {
-                if (y > height-60 && y < height-20) {
-                    if (x > width - 130 && x < width-80) {
+                if (y > height-60 && y < height-10) {
+                    if (x > width - 140 && x < width-80) {
                         zoomIn();
                         return true;
-                    } else if (x > width-80 && x < width-30) {
+                    } else if (x > width-80 && x < width-20) {
                         zoomOut();
                         return true;
                     }

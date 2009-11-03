@@ -180,16 +180,6 @@ public class KeyboardView extends View {
         canvas.drawRect(x, y, x+downCW-.5f, y+downCH-.5f, downPaint);
     }
 
-    /*
-    private boolean hasLargeClip(Canvas canvas, float x1, float y1) {
-        return !(canvas.getClipBounds(rect) 
-                 && (int)x1 - rect.left <= 1 
-                 && (int)y1 - rect.top <= 1 
-                 && rect.right - (int)(x1 + cellw) <= 1
-                 && rect.bottom - (int)(y1 + cellh) <= 1);
-    }
-    */
-
     public void draw(Canvas canvas) {
         super.draw(canvas);
         if (isDown) {
