@@ -4,8 +4,12 @@ package calculator;
 
 import android.view.View;
 import android.view.MotionEvent;
+import android.view.VelocityTracker;
+
 import android.widget.TextView;
 import android.widget.EditText;
+import android.widget.Scroller;
+
 import android.content.Context;
 import android.text.Editable;
 
@@ -40,10 +44,16 @@ public class GraphView extends View {
     private boolean invalidated = true;
     private Bitmap bitmap;
     private float gwidth = 8;
+    private float currentX = 0;
     private boolean isFullScreen;
+    private VelocityTracker velocityTracker;
+    private Scroller scroller;
+    private boolean active;
+    private float lastTouchX;
 
     public GraphView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        scroller = new Scroller(context);
         paint.setAntiAlias(false);
         textPaint.setAntiAlias(true);
     }
@@ -61,15 +71,25 @@ public class GraphView extends View {
         bitmap = null;
     }
 
-    public void draw(Canvas canvas) {
-        super.draw(canvas);
+    protected void onDraw(Canvas canvas) {
         if (function == null) {
             return;
         }
+        if (scroller.computeScrollOffset()) {
+            currentX = scroller.getCurrX() * gwidth / width;
+            invalidate();
+        }
+        drawBitmap(canvas);
+        /*
         if (invalidated) {
-            drawBitmap();
+            if (bitmap == null) {
+                bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            }
+            Canvas canvas = new Canvas(bitmap);
+            drawBitmap(canvas);
         }
         canvas.drawBitmap(bitmap, 0, 0, null);
+        */
     }
 
     private static final float 
@@ -90,16 +110,19 @@ public class GraphView extends View {
     private Data computeGraph(float minX, float maxX, float minY, float maxY) {
         final float scale = width / (maxX - minX);
         final float maxStep = 15.8976f / scale;
-        final float minStep = .1f / scale;
+        final float minStep = .2f / scale;
         // Calculator.log("step min " + minStep + " max " + maxStep);
-        final float ythresh = 1/scale;
+        final float ythresh = 2/scale;
+        final float ythresh2 = 2 * ythresh;
         next.clear();
         graph.clear();
+        long t1 = System.currentTimeMillis();
         graph.push(minX, eval(minX));
         float leftX = graph.topX();
         float leftY = graph.topY();
         float rightX = 0, rightY = 0;
         boolean advance = false;
+        int nEval = 1;
         while (true) {
             if (advance) {
                 leftX = rightX;
@@ -109,7 +132,8 @@ public class GraphView extends View {
             advance = true;
             if (next.empty()) {
                 float x = leftX + maxStep;
-                next.push(x, eval(x));                
+                next.push(x, eval(x));
+                ++nEval;
             }
             rightX = next.topX();
             rightY = next.topY();
@@ -126,8 +150,8 @@ public class GraphView extends View {
                 graph.push(rightX, rightY);
                 continue;
             }
-            if ((leftY < -100 && rightY > 100) || 
-                (leftY > 100 && rightY < -100)) {
+            if ((leftY < minY && rightY > maxY) || 
+                (leftY > maxY && rightY < minY)) {
                 graph.push(rightX, Float.NaN);
                 graph.push(rightX, rightY);
                 continue;
@@ -135,14 +159,29 @@ public class GraphView extends View {
 
             float middleX = (leftX + rightX) / 2;
             float middleY = eval(middleX);
+            ++nEval;
+            if ((leftY < minY && middleY > maxY) ||
+                (leftY > maxY && middleY < minY)) {
+                graph.push(middleX, Float.NaN);
+                graph.push(middleX, middleY);
+                leftX = middleX;
+                leftY = middleY;
+                advance = false;
+                continue;
+            }
             float diff = Math.abs(leftY + rightY - middleY - middleY);
             if (diff < ythresh) {
+                graph.push(rightX, rightY);
+            } else if (diff < ythresh2) {
+                graph.push(middleX, middleY);
                 graph.push(rightX, rightY);
             } else {
                 next.push(middleX, middleY);
                 advance = false;
             }
         }
+        long t2 = System.currentTimeMillis();
+        Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
         return graph;
     }
     
@@ -170,20 +209,15 @@ public class GraphView extends View {
         return path;
     }
 
-    private void drawBitmap() {
-        invalidated = false;        
-        float maxX = gwidth/2;
-        float minX = -maxX;
-        float maxY = maxX * height / width;
+    private void drawBitmap(Canvas canvas) {
+        invalidated = false;
+        float minX = currentX - gwidth/2;
+        float maxX = minX + gwidth;
+        float maxY = gwidth * height / (width*2);
         float minY = -maxY;
         Data graph = computeGraph(minX, maxX, minY, maxY);
-        Calculator.log("Uses points " + graph.size);
         Path path = graphToPath(graph);  
 
-        if (bitmap == null) {
-            bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-        }
-        Canvas canvas = new Canvas(bitmap);
         canvas.drawColor(0xffffffff);
                 
         paint.setColor(0xffa0ffa0);
@@ -196,7 +230,7 @@ public class GraphView extends View {
         canvas.drawLine(w2, 0, w2, height, paint);
         canvas.drawLine(0, h2, width, h2, paint);
 
-        final float scale = width / (maxX - minX);
+        final float scale = width / gwidth;
         final float tickSize = 3;
         final float y1 = h2 - tickSize;
         final float y2 = h2 + tickSize;
@@ -261,28 +295,69 @@ public class GraphView extends View {
     }
 
     public boolean onTouchEvent(MotionEvent event) {
-        if (isFullScreen) {
-            int action = event.getAction();
-            float x = event.getX();
-            float y = event.getY();
-            if (action == MotionEvent.ACTION_DOWN) {
-                if (y > height-60 && y < height-10) {
-                    if (x > width - 140 && x < width-80) {
-                        zoomOut();
-                        return true;
-                    } else if (x > width-80 && x < width-20) {
-                        zoomIn();
-                        return true;
-                    }
-                }
-            } else if (action == MotionEvent.ACTION_UP) {
-                
-            } else {
-                
-            }
-            return false;
-        } else {
+        if (!isFullScreen) {
             return super.onTouchEvent(event);
         }
+
+        int action = event.getAction();
+        float x = event.getX();
+        float y = event.getY();
+        if (!active && action != MotionEvent.ACTION_DOWN) {
+            return true;
+        }        
+        switch (action) {
+        case MotionEvent.ACTION_DOWN:
+            if (!scroller.isFinished()) {
+                scroller.abortAnimation();
+            }
+            active = false;
+            if (y > height-60 && y < height-10) {
+                if (x > width - 140 && x < width-80) {
+                    zoomOut();
+                    return true;
+                } else if (x > width-80 && x < width-20) {
+                    zoomIn();
+                    return true;
+                }
+            }
+            active = true;
+            velocityTracker = VelocityTracker.obtain();
+            velocityTracker.addMovement(event);
+            lastTouchX = x;
+            break;
+
+        case MotionEvent.ACTION_MOVE:
+            velocityTracker.addMovement(event);
+            float deltaPix = x - lastTouchX;
+            if (deltaPix > 2 || deltaPix < -2) {
+                scroll(-deltaPix);
+                lastTouchX = x;
+                invalidate();
+            }
+            break;
+
+        case MotionEvent.ACTION_UP:
+            velocityTracker.computeCurrentVelocity(1000);
+            int speed = Math.round(velocityTracker.getXVelocity());            
+            scroller.fling(Math.round(currentX * width / gwidth), 0, -speed, 0, -1000, 1000, 0, 0);
+            invalidate();
+            // no break
+
+        default:
+            if (velocityTracker != null) {
+                velocityTracker.recycle();
+                velocityTracker = null;
+            }
+            
+        }
+        return true;
+    }
+
+    private void scroll(float deltaPix) {
+        float scale = gwidth / width;
+        float delta = deltaPix * scale;
+        currentX += delta;
+        invalidated = true;
+        invalidate();
     }
 }

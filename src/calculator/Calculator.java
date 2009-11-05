@@ -71,14 +71,9 @@ public class Calculator extends Activity implements TextWatcher,
         {'0', '0', '.', '+', MINUS, 'E'},
     };
 
-    private static final char[][] ALPHA2 = {
-        {'q', 'w', 'e', 'r', 't', 'c', 'v', 'b', 'y', 'u', 'i', 'o', 'p'},
-        {'a', 's', 'd', 'f', 'g', 'z', 'x', 'n', 'm', 'h', 'j', 'k', 'l'},
-    };
-    
     private static final char[][] DIGITS2 = {
-        {'(', ',', ')', '^', '!', SQRT, '%', DIV, TIMES, MINUS, '+', 'C'},        
-        {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.', 'E'},
+        {'0', '.', '+', MINUS, TIMES, DIV, '^', '(', ')', 'C'},        
+        {'1', '2', '3', '4', '5', '6', '7', '8', '9', 'E'},
     };
 
     public void onConfigurationChanged(Configuration config) {
@@ -94,10 +89,10 @@ public class Calculator extends Activity implements TextWatcher,
         alpha = (KeyboardView) findViewById(R.id.alpha);
         digits = (KeyboardView) findViewById(R.id.digits);
         if (isLandscape) {                        
-            digits.init(DIGITS2);
+            digits.init(DIGITS2, false, true);
         } else {
-            alpha.init(ALPHA);
-            digits.init(DIGITS);
+            alpha.init(ALPHA, false, false);
+            digits.init(DIGITS, true, true);
             updateAlpha();
         }
 

@@ -43,7 +43,7 @@ public class KeyboardView extends View {
     private float cellw, cellh;
     private Calculator calculator;
     private KeyboardView aboveView;
-    private boolean isLarge;
+    private boolean isLarge, isBottom;
 
     public KeyboardView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -53,10 +53,12 @@ public class KeyboardView extends View {
         calculator = (Calculator) context;        
     }
     
-    void init(char[][] keys) {
+    void init(char[][] keys, boolean isLarge, boolean isBottom) {
         this.keys = keys;
         nLine = keys.length;
         nCol = keys[0].length;
+        this.isLarge = isLarge;
+        this.isBottom = isBottom;
     }
 
     void setAboveView(KeyboardView aboveView) {
@@ -64,16 +66,14 @@ public class KeyboardView extends View {
     }
     
     protected void onSizeChanged(int w, int h, int ow, int oh) {
-        Calculator.log("size " + w + ' ' + h);
         width = w;
-        height = h;
+        height = isBottom ? h - 5 : h;
 
         bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bitmap);
         
         cellw = width / (float) nCol;
         cellh = height / (float) nLine;
-        isLarge = cellw > 50;
         
         Paint textPaint = new Paint();
         textPaint.setAntiAlias(true);
@@ -180,8 +180,7 @@ public class KeyboardView extends View {
         canvas.drawRect(x, y, x+downCW-.5f, y+downCH-.5f, downPaint);
     }
 
-    public void draw(Canvas canvas) {
-        super.draw(canvas);
+    protected void onDraw(Canvas canvas) {
         if (isDown) {
             float x1 = getX(downCol);
             float y1 = getY(downLine);
