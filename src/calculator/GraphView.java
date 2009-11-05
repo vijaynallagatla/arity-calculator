@@ -41,8 +41,6 @@ public class GraphView extends View {
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
     private Function function;
     private Data next = new Data(), graph = new Data();
-    private boolean invalidated = true;
-    private Bitmap bitmap;
     private float gwidth = 8;
     private float currentX = 0;
     private boolean isFullScreen;
@@ -60,15 +58,14 @@ public class GraphView extends View {
 
     void setFunction(Function f, boolean isFullScreen) {
         this.function = f;
-        invalidated = true;
         this.isFullScreen = isFullScreen;
+        graph.clear();
     }
 
     protected void onSizeChanged(int w, int h, int ow, int oh) {
         width = w;
         height = h;
-        invalidated = true;
-        bitmap = null;
+        graph.clear();
     }
 
     protected void onDraw(Canvas canvas) {
@@ -79,17 +76,7 @@ public class GraphView extends View {
             currentX = scroller.getCurrX() * gwidth / width;
             invalidate();
         }
-        drawBitmap(canvas);
-        /*
-        if (invalidated) {
-            if (bitmap == null) {
-                bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-            }
-            Canvas canvas = new Canvas(bitmap);
-            drawBitmap(canvas);
-        }
-        canvas.drawBitmap(bitmap, 0, 0, null);
-        */
+        drawGraph(canvas);
     }
 
     private static final float 
@@ -108,16 +95,28 @@ public class GraphView extends View {
     }
 
     private Data computeGraph(float minX, float maxX, float minY, float maxY) {
-        final float scale = width / (maxX - minX);
-        final float maxStep = 15.8976f / scale;
+        long t1 = System.currentTimeMillis();
+        final float scale = width / gwidth;
+        final float maxStep = Math.min(15.8976f / scale, 1.373f);
         final float minStep = .2f / scale;
         // Calculator.log("step min " + minStep + " max " + maxStep);
         final float ythresh = 2/scale;
         final float ythresh2 = 2 * ythresh;
         next.clear();
-        graph.clear();
-        long t1 = System.currentTimeMillis();
-        graph.push(minX, eval(minX));
+        Data endGraph = null;
+        if (!graph.empty()) {
+            if (maxX > graph.topX()) {
+                graph.eraseBefore(minX);
+            } else {
+                graph.eraseAfter(maxX);
+                maxX = graph.firstX();
+                endGraph = graph;
+                graph = new Data();
+            }
+        }
+        if (graph.empty()) {
+            graph.push(minX, eval(minX));
+        }
         float leftX = graph.topX();
         float leftY = graph.topY();
         float rightX = 0, rightY = 0;
@@ -143,6 +142,12 @@ public class GraphView extends View {
             if (leftY != leftY && rightY != rightY) { // NaN
                 continue;
             }
+            if ((leftY < minY && rightY > maxY) || 
+                (leftY > maxY && rightY < minY)) {
+                graph.push(rightX, Float.NaN);
+                graph.push(rightX, rightY);
+                continue;
+            }
             float span = rightX - leftX;
             if (span <= minStep ||
                 (leftY < minY && rightY < minY) ||
@@ -150,13 +155,6 @@ public class GraphView extends View {
                 graph.push(rightX, rightY);
                 continue;
             }
-            if ((leftY < minY && rightY > maxY) || 
-                (leftY > maxY && rightY < minY)) {
-                graph.push(rightX, Float.NaN);
-                graph.push(rightX, rightY);
-                continue;
-            }
-
             float middleX = (leftX + rightX) / 2;
             float middleY = eval(middleX);
             ++nEval;
@@ -179,6 +177,9 @@ public class GraphView extends View {
                 next.push(middleX, middleY);
                 advance = false;
             }
+        }
+        if (endGraph != null) {
+            graph.append(endGraph);
         }
         long t2 = System.currentTimeMillis();
         Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
@@ -209,8 +210,39 @@ public class GraphView extends View {
         return path;
     }
 
-    private void drawBitmap(Canvas canvas) {
-        invalidated = false;
+    private static final float NTICKS = 15;
+    private static float stepFactor(float w) {
+        float f = 1;
+        while (w / f > NTICKS) {
+            f *= 10;
+        }
+        while (w / f < NTICKS / 10) {
+            f /= 10;
+        }
+        float r = w / f;
+        if (r < NTICKS / 5) {
+            return f / 5;
+        } else if (r < NTICKS / 2) {
+            return f / 2;
+        } else {
+            return f;
+        }
+    }
+
+    private static String format(float v) {
+        if (Math.abs(v - (int)v) < .001f) {
+            int rv = Math.round(v);
+            return rv == 0 ? "" : "" + Math.round(v);
+        }
+        v *= 10;
+        if (Math.abs(v - (int) v) < .001f) {
+            return "" + Math.round(v)/10.;
+        }
+        v *= 10;        
+        return "" + Math.round(v)/100.;
+    }
+
+    private void drawGraph(Canvas canvas) {
         float minX = currentX - gwidth/2;
         float maxX = minX + gwidth;
         float maxY = gwidth * height / (width*2);
@@ -220,45 +252,61 @@ public class GraphView extends View {
 
         canvas.drawColor(0xffffffff);
                 
-        paint.setColor(0xffa0ffa0);
         paint.setStrokeWidth(0);
         paint.setAntiAlias(false);
         paint.setStyle(Paint.Style.STROKE);
 
-        final float w2 = width/2f, h2 = height/2f;
-
-        canvas.drawLine(w2, 0, w2, height, paint);
-        canvas.drawLine(0, h2, width, h2, paint);
-
+        final float h2 = height/2f;
         final float scale = width / gwidth;
+        
+        float x0 = -minX * scale;
+        boolean drawYAxis = true;
+        if (x0 < 15) {
+            x0 = 15;
+            drawYAxis = false;
+        } else if (x0 > width - 3) {
+            x0 = width - 3;
+            drawYAxis = false;
+        }
+
         final float tickSize = 3;
         final float y1 = h2 - tickSize;
         final float y2 = h2 + tickSize;
-        paint.setColor(0xff00ff00);
-        int v = (int)minX;
+        paint.setColor(0xffd0ffd0);
+        float step = stepFactor(gwidth);
+        // Calculator.log("width " + gwidth + " step " + step);
+        float v = ((int) (minX/step)) * step;
         textPaint.setColor(0xff00b000);
         textPaint.setTextSize(10);
         textPaint.setTextAlign(Paint.Align.CENTER);
-        for (float x = ((int)minX - minX) * scale; x <= width; x += scale, ++v) {
-            canvas.drawLine(x, y1, x, y2, paint);
+        float stepScale = step * scale;
+        for (float x = (v - minX) * scale; x <= width; x += stepScale, v += step) {
+            canvas.drawLine(x, 0, x, height, paint);
             if (v != 0) {
-                canvas.drawText("" + v, x, y2+10, textPaint);
+                canvas.drawText(format(v), x, y2+10, textPaint);
             }
         }
         
-        final float x1 = w2 - tickSize;
-        final float x2 = w2 + tickSize;
-        v = (int)minY;
+        final float x1 = x0 - tickSize;
+        final float x2 = x0 + tickSize;
+        v = ((int) (minY/step)) * step;
         textPaint.setTextAlign(Paint.Align.RIGHT);
-        for (float y = height - ((int)minY - minY) * scale; y >= 0; y -= scale, ++v) {
-            canvas.drawLine(x1, y, x2, y, paint);
+        for (float y = height - (v - minY) * scale; y >= 0; y -= stepScale, v += step) {
+            canvas.drawLine(0, y, width, y, paint);
             if (v != 0) {
-                canvas.drawText("" + v, x1, y+4, textPaint);
+                canvas.drawText(format(v), x1, y+4, textPaint);
             }
         }
 
+        paint.setColor(0xff00d000);
+        if (drawYAxis) {
+            canvas.drawLine(x0, 0, x0, height, paint);
+        }
+        canvas.drawLine(0, h2, width, h2, paint);
+
         matrix.reset();
-        matrix.preScale(scale, -scale);
+        matrix.preTranslate(-currentX, 0);
+        matrix.postScale(scale, -scale);
         matrix.postTranslate(width/2, height/2);
 
         paint.setColor(0xff000000);
@@ -279,18 +327,18 @@ public class GraphView extends View {
     }
 
     private void zoomOut() {
-        if (gwidth < 30) {
+        if (gwidth < 50) {
             gwidth *= 2;
-            invalidated = true;
             invalidate();
+            graph.clear();
         }
     }
 
     private void zoomIn() {
         if (gwidth > 1f) {
             gwidth /= 2;
-            invalidated = true;
             invalidate();
+            graph.clear();
         }
     }
 
@@ -339,7 +387,7 @@ public class GraphView extends View {
         case MotionEvent.ACTION_UP:
             velocityTracker.computeCurrentVelocity(1000);
             int speed = Math.round(velocityTracker.getXVelocity());            
-            scroller.fling(Math.round(currentX * width / gwidth), 0, -speed, 0, -1000, 1000, 0, 0);
+            scroller.fling(Math.round(currentX * width / gwidth), 0, -speed, 0, -10000, 10000, 0, 0);
             invalidate();
             // no break
 
@@ -357,7 +405,6 @@ public class GraphView extends View {
         float scale = gwidth / width;
         float delta = deltaPix * scale;
         currentX += delta;
-        invalidated = true;
         invalidate();
     }
 }
