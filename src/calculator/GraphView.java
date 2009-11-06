@@ -40,7 +40,7 @@ public class GraphView extends View {
     private Matrix matrix = new Matrix();
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
     private Function function;
-    private Data next = new Data(), graph = new Data();
+    private Data next = new Data(), graph = new Data(), endGraph = new Data();
     private float gwidth = 8;
     private float currentX = 0;
     private boolean isFullScreen;
@@ -103,15 +103,16 @@ public class GraphView extends View {
         final float ythresh = 2/scale;
         final float ythresh2 = 2 * ythresh;
         next.clear();
-        Data endGraph = null;
+        endGraph.clear();
         if (!graph.empty()) {
             if (maxX > graph.topX()) {
                 graph.eraseBefore(minX);
             } else {
                 graph.eraseAfter(maxX);
                 maxX = graph.firstX();
+                Data save = endGraph;
                 endGraph = graph;
-                graph = new Data();
+                graph = save;
             }
         }
         if (graph.empty()) {
@@ -178,20 +179,21 @@ public class GraphView extends View {
                 advance = false;
             }
         }
-        if (endGraph != null) {
+        if (!endGraph.empty()) {
             graph.append(endGraph);
         }
         long t2 = System.currentTimeMillis();
-        Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
+        // Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
         return graph;
     }
     
+    private static Path path = new Path();
     private Path graphToPath(Data graph) {
         boolean first = true;
         int size = graph.size;
         float[] xs = graph.xs;
         float[] ys = graph.ys;
-        Path path = new Path();
+        path.rewind();
         for (int i = 0; i < size; ++i) {
             float y = ys[i];
             float x = xs[i];
@@ -229,17 +231,37 @@ public class GraphView extends View {
         }
     }
 
+    /*
+    private static StringBuilder builder = new StringBuilder();
+    private static StringBuilder format(float v) {
+        builder.setLength(0);
+        if (Math.abs(v - (int)v) < .001f) {
+            int rv = Math.round(v);
+            if (rv != 0) {
+                builder.append(Math.round(v));
+            }
+        } else {
+            v *= 10;
+            if (Math.abs(v - (int) v) < .001f) {
+                builder.append(Math.round(v)/10.);
+            } else {
+                builder.append(Math.round(v*10)/100.);
+            }
+        }
+        return builder;
+    }
+    */
+
     private static String format(float v) {
         if (Math.abs(v - (int)v) < .001f) {
             int rv = Math.round(v);
-            return rv == 0 ? "" : "" + Math.round(v);
+            return rv == 0 ? "" : Integer.toString(rv);
         }
         v *= 10;
         if (Math.abs(v - (int) v) < .001f) {
-            return "" + Math.round(v)/10.;
+            return Float.toString(Math.round(v)/10f);
         }
-        v *= 10;        
-        return "" + Math.round(v)/100.;
+        return Float.toString(Math.round(v*10)/100f);
     }
 
     private void drawGraph(Canvas canvas) {
