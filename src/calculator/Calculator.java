@@ -144,7 +144,7 @@ public class Calculator extends Activity implements TextWatcher,
 	    nDigits = 0;
 	}
     }
-
+    
     public void onPause() {
         super.onPause();
 	history.updateEdited(input.getText().toString());

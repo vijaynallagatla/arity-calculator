@@ -90,7 +90,6 @@ class Data {
         while (pos < size && xs[pos] <= x) {
             ++pos;
         }
-        // Calculator.log("find " + y + ' ' + ys[pos] + ' ' + (y != y) + ' ' + (ys[pos] != ys[pos]));
         if (Float.isNaN(y)) {
             while (pos < size && ys[pos] != ys[pos]) {
                 ++pos;

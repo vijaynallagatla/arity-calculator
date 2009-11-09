@@ -49,6 +49,7 @@ public class GraphView extends View {
     private Scroller scroller;
     private boolean active;
     private float lastTouchX;
+    private float points[];
 
     public GraphView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -67,6 +68,7 @@ public class GraphView extends View {
         width = w;
         height = h;
         graph.clear();
+        points = new float[w+w];
     }
 
     protected void onDraw(Canvas canvas) {
@@ -97,11 +99,21 @@ public class GraphView extends View {
         return v;
     }
 
+    private void computeGraph2(float minX) {
+        float step = gwidth / width;
+        int end = width + width;
+        float x = minX;
+        for (int i = 0; i < end; x += step, i+=2) {
+            points[i] = x;
+            points[i+1] = (float) function.eval(x);
+        }
+    }
+
     private Data computeGraph(float minX, float maxX, float minY, float maxY) {
         long t1 = System.currentTimeMillis();
         final float scale = width / gwidth;
         final float maxStep = Math.min(15.8976f / scale, 1.373f);
-        final float minStep = .1f / scale;
+        final float minStep = .2f / scale;
         // Calculator.log("step min " + minStep + " max " + maxStep);
         final float ythresh = 2/scale;
         // final float ythresh2 = 1.5f * ythresh;
@@ -111,12 +123,8 @@ public class GraphView extends View {
             // Calculator.log("last " + lastMinX + " min " + minX);
             if (minX >= lastMinX) {
                 graph.eraseBefore(minX);
-                // Calculator.log("left");
             } else {
-                // Calculator.log("right; maxX " + maxX);
-                // Calculator.log(graph.toString());
                 graph.eraseAfter(maxX);
-                // Calculator.log(graph.toString());
                 maxX = graph.firstX();
                 Data save = endGraph;
                 endGraph = graph;
@@ -196,7 +204,7 @@ public class GraphView extends View {
             graph.append(endGraph);
         }
         long t2 = System.currentTimeMillis();
-        Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
+        // Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
         return graph;
     }
     
@@ -265,25 +273,47 @@ public class GraphView extends View {
     }
     */
 
-    private static String format(float v) {
-        if (Math.abs(v - (int)v) < .001f) {
-            int rv = Math.round(v);
-            return rv == 0 ? "" : "" + rv;
+    private static StringBuilder b = new StringBuilder();
+    private static char[] buf = new char[20];
+    private static StringBuilder format(float fv) {
+        int pos = 0;
+        boolean addDot = false;
+        int v = Math.round(fv * 100);
+        boolean isNeg = v < 0;
+        v = isNeg ? -v : v;
+        for (int i = 0; i < 2; ++i) {
+            int digit = v % 10;
+            v /= 10;
+            if (digit != 0 || addDot) {
+                buf[pos++] = (char) ('0' + digit);
+                addDot = true;
+            }
         }
-        v *= 10;
-        if (Math.abs(v - (int) v) < .001f) {
-            return "" + (Math.round(v)/10f);
+        if (addDot) {
+            buf[pos++] = '.';
         }
-        return "" + (Math.round(v*10)/100f);
+        if (v == 0) {
+            buf[pos++] = '0';
+        }
+        while (v != 0) {
+            buf[pos++] = (char) ('0' + (v % 10));
+            v /= 10;
+        }
+        if (isNeg) {
+            buf[pos++] = '-';
+        }
+        b.setLength(0);
+        b.append(buf, 0, pos);
+        b.reverse();
+        return b;
     }
 
     private void drawGraph(Canvas canvas) {
+        long t1 = System.currentTimeMillis();
         float minX = currentX - gwidth/2;
         float maxX = minX + gwidth;
         float maxY = gwidth * height / (width*2);
         float minY = -maxY;
-        Data graph = computeGraph(minX, maxX, minY, maxY);
-        Path path = graphToPath(graph);  
 
         canvas.drawColor(0xffffffff);
                 
@@ -305,7 +335,6 @@ public class GraphView extends View {
         }
 
         final float tickSize = 3;
-        final float y1 = h2 - tickSize;
         final float y2 = h2 + tickSize;
         paint.setColor(0xffd0ffd0);
         float step = stepFactor(gwidth);
@@ -318,18 +347,19 @@ public class GraphView extends View {
         for (float x = (v - minX) * scale; x <= width; x += stepScale, v += step) {
             canvas.drawLine(x, 0, x, height, paint);
             if (v != 0) {
-                canvas.drawText(format(v), x, y2+10, textPaint);
+                StringBuilder b = format(v);
+                canvas.drawText(b, 0, b.length(), x, y2+10, textPaint);
             }
         }
         
         final float x1 = x0 - tickSize;
-        final float x2 = x0 + tickSize;
         v = ((int) (minY/step)) * step;
         textPaint.setTextAlign(Paint.Align.RIGHT);
         for (float y = height - (v - minY) * scale; y >= 0; y -= stepScale, v += step) {
             canvas.drawLine(0, y, width, y, paint);
             if (v != 0) {
-                canvas.drawText(format(v), x1, y+4, textPaint);
+                StringBuilder b = format(v);
+                canvas.drawText(b, 0, b.length(), x1, y+4, textPaint);
             }
         }
 
@@ -338,7 +368,8 @@ public class GraphView extends View {
             canvas.drawLine(x0, 0, x0, height, paint);
         }
         canvas.drawLine(0, h2, width, h2, paint);
-
+        long t3 = System.currentTimeMillis();
+        
         matrix.reset();
         matrix.preTranslate(-currentX, 0);
         matrix.postScale(scale, -scale);
@@ -347,8 +378,20 @@ public class GraphView extends View {
         paint.setColor(0xff000000);
         paint.setStrokeWidth(0);
         paint.setAntiAlias(true);
+
+        Data graph = computeGraph(minX, maxX, minY, maxY);
+        Path path = graphToPath(graph);
+        long t5 = System.currentTimeMillis();
         path.transform(matrix);
+        long t4 = System.currentTimeMillis();
         canvas.drawPath(path, paint);
+
+        /*
+        computeGraph2(minX);
+        matrix.mapPoints(points);
+        paint.setAntiAlias(false);
+        canvas.drawPoints(points, paint);
+        */
         
         if (isFullScreen) {
             fillPaint.setColor(0x10000000);
@@ -362,6 +405,8 @@ public class GraphView extends View {
             textPaint.setColor(canZoomIn() ? 0xd0000000 : 0x30000000);
             canvas.drawText("+", width-55, height-22, textPaint);
         }
+        long t2 = System.currentTimeMillis();
+        // Calculator.log("total draw time " + (t2 - t1) + ' ' + (t3-t1) + ' ' + (t5 - t3) + ' ' + (t4 - t5) + ' ' + (t2-t4));
     }
 
     private boolean canZoomIn() {
