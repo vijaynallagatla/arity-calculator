@@ -18,6 +18,10 @@ class Defs extends FileHandler {
 	load();
     }
 
+    void clear() {
+        lines.clear();
+    }
+
     int size() {
         return lines.size();
     }

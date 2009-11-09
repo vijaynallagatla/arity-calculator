@@ -50,12 +50,12 @@ public class Calculator extends Activity implements TextWatcher,
     private GraphView graphView;
     private History history;
     private HistoryAdapter adapter;   
-    private Defs defs;
     private int nDigits = 0;
     private boolean pendingClearResult;
     private boolean isAlphaVisible;
     private KeyboardView alpha, digits;
     static Function graphedFunction;
+    static Defs defs;
 
     private static final char[][] ALPHA = {
         {'q', 'w', PI,  SQRT, '=', ',', '!', '#'},
@@ -163,6 +163,7 @@ public class Calculator extends Activity implements TextWatcher,
         super.onPrepareOptionsMenu(menu);
         menu.findItem(R.id.clear_history).setEnabled(history.size() > 0);
         menu.findItem(R.id.list_defs).setEnabled(defs.size() > 0);
+        // menu.findItem(R.id.clear_defs).setEnabled(defs.size() > 0);
         return true;
     }
 
@@ -171,9 +172,7 @@ public class Calculator extends Activity implements TextWatcher,
 	int id = item.getItemId();
 	switch (id) {
 	case R.id.list_defs: {
-	    Intent i = new Intent(this, ListDefs.class);
-	    i.putStringArrayListExtra("", defs.lines);
-	    startActivity(i);
+	    startActivity(new Intent(this, ListDefs.class));
 	    break;
 	}
 
@@ -185,6 +184,11 @@ public class Calculator extends Activity implements TextWatcher,
             history.clear();
             history.save();
             adapter.notifyDataSetInvalidated();
+            break;
+
+        case R.id.clear_defs:
+            defs.clear();
+            defs.save();
             break;
 
 	default:
@@ -294,7 +298,7 @@ public class Calculator extends Activity implements TextWatcher,
 	if (nDigits == 0) {
             nDigits = getResultSpace();
         }
-	String res = Util.complexToString(value, nDigits, 2);
+	String res = Util.complexToString(value, nDigits, 1);
 	return res.replace(INFINITY, INFINITY_UNICODE);
     }
 
