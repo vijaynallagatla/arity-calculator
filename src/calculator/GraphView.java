@@ -43,6 +43,7 @@ public class GraphView extends View {
     private Data next = new Data(), graph = new Data(), endGraph = new Data();
     private float gwidth = 8;
     private float currentX = 0;
+    private float lastMinX = 0;
     private boolean isFullScreen;
     private VelocityTracker velocityTracker;
     private Scroller scroller;
@@ -74,7 +75,9 @@ public class GraphView extends View {
         }
         if (scroller.computeScrollOffset()) {
             currentX = scroller.getCurrX() * gwidth / width;
-            invalidate();
+            if (!scroller.isFinished()) {
+                invalidate();
+            }
         }
         drawGraph(canvas);
     }
@@ -98,23 +101,29 @@ public class GraphView extends View {
         long t1 = System.currentTimeMillis();
         final float scale = width / gwidth;
         final float maxStep = Math.min(15.8976f / scale, 1.373f);
-        final float minStep = .2f / scale;
+        final float minStep = .1f / scale;
         // Calculator.log("step min " + minStep + " max " + maxStep);
         final float ythresh = 2/scale;
-        final float ythresh2 = 2 * ythresh;
+        // final float ythresh2 = 1.5f * ythresh;
         next.clear();
         endGraph.clear();
         if (!graph.empty()) {
-            if (maxX > graph.topX()) {
+            // Calculator.log("last " + lastMinX + " min " + minX);
+            if (minX >= lastMinX) {
                 graph.eraseBefore(minX);
+                // Calculator.log("left");
             } else {
+                // Calculator.log("right; maxX " + maxX);
+                // Calculator.log(graph.toString());
                 graph.eraseAfter(maxX);
+                // Calculator.log(graph.toString());
                 maxX = graph.firstX();
                 Data save = endGraph;
                 endGraph = graph;
                 graph = save;
             }
         }
+        lastMinX = minX;
         if (graph.empty()) {
             graph.push(minX, eval(minX));
         }
@@ -153,6 +162,7 @@ public class GraphView extends View {
             if (span <= minStep ||
                 (leftY < minY && rightY < minY) ||
                 (leftY > maxY && rightY > maxY)) {
+                // Calculator.log("+ minStep");
                 graph.push(rightX, rightY);
                 continue;
             }
@@ -170,11 +180,14 @@ public class GraphView extends View {
             }
             float diff = Math.abs(leftY + rightY - middleY - middleY);
             if (diff < ythresh) {
+                // Calculator.log("+ ythresh");
                 graph.push(rightX, rightY);
-            } else if (diff < ythresh2) {
+            } /* else if (diff < ythresh2) {
+                Calculator.log("+ ythresh2");
                 graph.push(middleX, middleY);
                 graph.push(rightX, rightY);
-            } else {
+                } */ 
+            else {
                 next.push(middleX, middleY);
                 advance = false;
             }
@@ -183,7 +196,7 @@ public class GraphView extends View {
             graph.append(endGraph);
         }
         long t2 = System.currentTimeMillis();
-        // Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
+        Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
         return graph;
     }
     
@@ -255,13 +268,13 @@ public class GraphView extends View {
     private static String format(float v) {
         if (Math.abs(v - (int)v) < .001f) {
             int rv = Math.round(v);
-            return rv == 0 ? "" : Integer.toString(rv);
+            return rv == 0 ? "" : "" + rv;
         }
         v *= 10;
         if (Math.abs(v - (int) v) < .001f) {
-            return Float.toString(Math.round(v)/10f);
+            return "" + (Math.round(v)/10f);
         }
-        return Float.toString(Math.round(v*10)/100f);
+        return "" + (Math.round(v*10)/100f);
     }
 
     private void drawGraph(Canvas canvas) {
@@ -339,17 +352,28 @@ public class GraphView extends View {
         
         if (isFullScreen) {
             fillPaint.setColor(0x10000000);
-            canvas.drawRect(width-130, height-60, width-30, height-20, fillPaint);
-            textPaint.setColor(0xc0000000);
+            canvas.drawRect(width-130, height-55, width-30, height-10, fillPaint);
             textPaint.setTextSize(22);
             textPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("\u2212", width-105, height-30, textPaint);
-            canvas.drawText("+", width-55, height-30, textPaint);
+            
+            textPaint.setColor(canZoomOut() ? 0xd0000000 : 0x30000000);
+            canvas.drawText("\u2212", width-105, height-22, textPaint);
+            
+            textPaint.setColor(canZoomIn() ? 0xd0000000 : 0x30000000);
+            canvas.drawText("+", width-55, height-22, textPaint);
         }
     }
 
+    private boolean canZoomIn() {
+        return gwidth > 1f;
+    }
+
+    private boolean canZoomOut() {
+        return gwidth < 50;
+    }
+
     private void zoomOut() {
-        if (gwidth < 50) {
+        if (canZoomOut()) {
             gwidth *= 2;
             invalidate();
             graph.clear();
@@ -357,7 +381,7 @@ public class GraphView extends View {
     }
 
     private void zoomIn() {
-        if (gwidth > 1f) {
+        if (canZoomIn()) {
             gwidth /= 2;
             invalidate();
             graph.clear();
@@ -381,7 +405,7 @@ public class GraphView extends View {
                 scroller.abortAnimation();
             }
             active = false;
-            if (y > height-60 && y < height-10) {
+            if (y > height-60) {
                 if (x > width - 140 && x < width-80) {
                     zoomOut();
                     return true;
@@ -399,7 +423,7 @@ public class GraphView extends View {
         case MotionEvent.ACTION_MOVE:
             velocityTracker.addMovement(event);
             float deltaPix = x - lastTouchX;
-            if (deltaPix > 2 || deltaPix < -2) {
+            if (deltaPix > 3 || deltaPix < -3) {
                 scroll(-deltaPix);
                 lastTouchX = x;
                 invalidate();

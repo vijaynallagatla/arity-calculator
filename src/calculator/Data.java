@@ -12,6 +12,7 @@ class Data {
         if (size >= allocSize) {
             makeSpace(size+1);
         }
+        // Calculator.log("push " + size + ' ' + x + ' ' + y);
         xs[size] = x;
         ys[size] = y;
         ++size;
@@ -84,15 +85,45 @@ class Data {
         }
     }
 
+    int findPosAfter(float x, float y) {
+        int pos = 0;
+        while (pos < size && xs[pos] <= x) {
+            ++pos;
+        }
+        // Calculator.log("find " + y + ' ' + ys[pos] + ' ' + (y != y) + ' ' + (ys[pos] != ys[pos]));
+        if (Float.isNaN(y)) {
+            while (pos < size && ys[pos] != ys[pos]) {
+                ++pos;
+            }
+        }
+        // Calculator.log("pos " + pos);
+        return pos;
+    }
+
     void append(Data d) {
         makeSpace(size + d.size);
-        int pos = 0;
-        float last = xs[size-1];
+        int pos = d.findPosAfter(xs[size-1], ys[size-1]);
+        /*
         while (pos < d.size && d.xs[pos] <= last) {
             ++pos;
         }
+        if (last != last) {
+            while (pos < d.size && d.ys[pos] != d.ys[pos]) {
+                ++pos;
+            }
+        }
+        */
         System.arraycopy(d.xs, pos, xs, size, d.size-pos);
         System.arraycopy(d.ys, pos, ys, size, d.size-pos);
         size += d.size-pos;
+    }
+
+    public String toString() {
+        StringBuilder b = new StringBuilder();
+        b.append(size).append(": ");
+        for (int i = 0; i < size; ++i) {
+            b.append(xs[i]).append(", ");
+        }
+        return b.toString();
     }
 }
