@@ -16,10 +16,8 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
-    <activity android:name="calculator.ShowGraph"
-              android:label="Graph"
-              android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
-              />
+    <activity android:name="calculator.ShowGraph" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+    <activity android:name="calculator.ShowGraph3d" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
     <activity android:name="calculator.ListDefs" android:label="User definitions" />
     <activity android:name="calculator.Help" android:label="Arity Calculator" />
   </application>

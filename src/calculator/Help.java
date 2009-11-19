@@ -1,3 +1,5 @@
+// Copyright (C) 2009 Mihai Preda
+
 package calculator;
 
 import android.app.Activity;

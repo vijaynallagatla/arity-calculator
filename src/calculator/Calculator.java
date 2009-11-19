@@ -54,7 +54,7 @@ public class Calculator extends Activity implements TextWatcher,
     private boolean pendingClearResult;
     private boolean isAlphaVisible;
     private KeyboardView alpha, digits;
-    static Function graphedFunction;
+    static Function graphedFunction, graphed3d;
     static Defs defs;
 
     private static final char[][] ALPHA = {
@@ -382,6 +382,10 @@ public class Calculator extends Activity implements TextWatcher,
 	    historyChanged = arity == 0 ?
 		history.onEnter(text, formatEval(value)) :
 		history.onEnter(text, null);
+            if (arity == 2) {
+                graphed3d = f;
+                startActivity(new Intent(this, ShowGraph3d.class));
+            }
 	} catch (SyntaxException e) {
 	    historyChanged = history.onEnter(text, null);
 	}
