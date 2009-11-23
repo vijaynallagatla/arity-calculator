@@ -13,9 +13,8 @@ public class ShowGraph3d extends Activity {
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        surfaceView = new GLSurfaceView(this);
         graph.setFunction(Calculator.graphed3d);
-        surfaceView.setRenderer(new GraphRenderer(graph));
+        surfaceView = new Graph3dView(this, graph);
         setContentView(surfaceView);
     }
 

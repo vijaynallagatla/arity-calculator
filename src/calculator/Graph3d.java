@@ -115,6 +115,7 @@ class Graph3d {
     public void draw(GL10 gl) {
         gl.glDisableClientState(GL10.GL_COLOR_ARRAY);
         gl.glColor4f(.7f, .7f, .7f, 1);
+
         gl.glVertexPointer(3, gl.GL_FLOAT, 0, gridVertexBuf);        
         gl.glDrawArrays(gl.GL_LINES, 0, 20);
 

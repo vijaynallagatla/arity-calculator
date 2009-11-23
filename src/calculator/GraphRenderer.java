@@ -11,24 +11,39 @@ import android.opengl.GLSurfaceView;
 
 class GraphRenderer implements GLSurfaceView.Renderer {
     Graph3d graph;
-    private float angle = 0;
+    private float angleX, angleY = 15;
+    private long lastTime;
+    private int drawCnt = 1;
 
     public GraphRenderer(Graph3d graph) {
         this.graph = graph;
     }
 
+    public void incAngle(float dx, float dy) {
+        angleX += dx;
+        angleY += dy;
+        angleY = Math.max(angleY, -90);
+        angleY = Math.min(angleY, 90);
+    }
+
     public void onDrawFrame(GL10 gl) {
-        // gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+        // gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);        
+        if (--drawCnt == 0) {
+            drawCnt = 30;
+            long now = System.currentTimeMillis();
+            Calculator.log("time " + ((now - lastTime) / 3));
+            lastTime = now;
+        }
+
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glLoadIdentity();
         gl.glTranslatef(0, 0, -(NEAR+6.5f));
-        gl.glRotatef(-80, 1, 0, 0);
-        
-        gl.glRotatef(angle, 0, 0, 1);        
+        gl.glRotatef(-90+angleY, 1, 0, 0);        
+        gl.glRotatef(angleX, 0, 0, 1);        
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);        
         graph.draw(gl);
-        angle += 1f;
+        // angle += 1f;
     }
 
     private static final int NEAR = 15;
