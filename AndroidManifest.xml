@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+   xmlns:android="http://schemas.android.com/apk/res/android"
+   package="arity.calculator"
+   android:versionCode="11"
+   android:versionName="1.10">
+  <uses-sdk android:minSdkVersion="4" android:targetSdkVersion="4" />
+  <application android:label="Arity" android:icon="@drawable/icon" >
+    <activity android:name="calculator.Calculator"
+              android:label="Arity"
+              android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+              android:configChanges="orientation|keyboard|keyboardHidden"
+              >
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+    <activity android:name="calculator.ShowGraph" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+    <activity android:name="calculator.ShowGraph3d" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+    <activity android:name="calculator.ListDefs" android:label="User definitions" />
+    <activity android:name="calculator.Help" android:label="Arity Calculator" />
+  </application>
+</manifest> 
