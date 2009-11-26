@@ -8,7 +8,7 @@ import android.os.Bundle;
 import arity.calculator.R;
 
 public class ShowGraph3d extends Activity {
-    private GLSurfaceView surfaceView;
+    private Graph3dView surfaceView;
     private static Graph3d graph = new Graph3d();
 
     public void onCreate(Bundle icicle) {
@@ -20,11 +20,18 @@ public class ShowGraph3d extends Activity {
 
     protected void onPause() {
         super.onPause();
+        Calculator.log("activity pause");
         surfaceView.onPause();
+        surfaceView = null;
     }
 
     protected void onResume() {
         super.onResume();
+        Calculator.log("activity resume");
+        if (surfaceView == null) {
+            surfaceView = new Graph3dView(this, graph);
+            setContentView(surfaceView);
+        }
         surfaceView.onResume();
     }
 }
