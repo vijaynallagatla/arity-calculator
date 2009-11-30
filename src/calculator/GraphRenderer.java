@@ -30,6 +30,8 @@ class GraphRenderer implements GLSurfaceView.Renderer {
 
     public void onDrawFrame(GL10 gl10) {
         GL11 gl = (GL11) gl10;
+        // Calculator.log("ext: " + gl.glGetString(GL11.GL_EXTENSIONS) + "; " + gl.glGetString(GL11.GL_VERSION));
+
         /*
         if (--drawCnt == 0) {
             drawCnt = 30;
