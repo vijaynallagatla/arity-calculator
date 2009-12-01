@@ -20,12 +20,7 @@ import android.graphics.Region;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 
-import android.os.Handler;
-import android.os.Message;
-import android.os.SystemClock;
-
 import android.util.AttributeSet;
-
 import android.util.Log;
 import arity.calculator.R;
 

@@ -51,9 +51,9 @@ class Graph3d {
     }
 
     private void fillGrid() {
-        float[] grid = new float[18 * 6];
+        float[] grid = new float[5 * 2 * 6];
         int p = 0;
-        for (int i = -4; i <= 4; ++i) {
+        for (int i = -4; i <= 4; i+=2) {
             grid[p] = i; grid[p+1] = -4; grid[p+2] = 0;
             p += 3;
             grid[p] = i; grid[p+1] = 4; grid[p+2] = 0;
