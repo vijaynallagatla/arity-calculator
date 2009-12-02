@@ -48,13 +48,14 @@ public class Calculator extends Activity implements TextWatcher,
     private EditText input;
     private ListView historyView;
     private GraphView graphView;
+    private Graph3dView graph3dView;
     private History history;
     private HistoryAdapter adapter;   
     private int nDigits = 0;
     private boolean pendingClearResult;
     private boolean isAlphaVisible;
     private KeyboardView alpha, digits;
-    static Function graphedFunction, graphed3d;
+    static Function graphedFunction;
     static Defs defs;
 
     private static final char[][] ALPHA = {
@@ -111,6 +112,8 @@ public class Calculator extends Activity implements TextWatcher,
         input.requestFocus();
         graphView = (GraphView) findViewById(R.id.graph);
         graphView.setOnClickListener(this);
+        graph3dView = (Graph3dView) findViewById(R.id.graph3d);
+        graph3dView.setOnClickListener(this);
         historyView = (ListView) findViewById(R.id.history);
         if (historyView != null) {
             historyView.setAdapter(adapter);
@@ -306,7 +309,7 @@ public class Calculator extends Activity implements TextWatcher,
         try {
             Function f = symbols.compile(text);
             int arity = f.arity();
-            if (arity == 1) {
+            if (arity == 1 || arity == 2) {
                 showGraph(f);
             }
             return arity==0 ? formatEval(f.evalComplex()) : "function";
@@ -351,16 +354,27 @@ public class Calculator extends Activity implements TextWatcher,
         if (f == null) {
             if (graphIsVisible) {
                 graphView.setVisibility(View.GONE);
+                graph3dView.setVisibility(View.GONE);
                 historyView.setVisibility(View.VISIBLE);
+                result.setVisibility(View.VISIBLE);
             }
-        } else {            
+        } else {
             graphView.setFunction(f, false);
-            graphedFunction = f;
-            if (!graphIsVisible) {
+            graphedFunction = f;            
+            // if (!graphIsVisible) {
                 historyView.setVisibility(View.GONE);
-                graphView.setVisibility(View.VISIBLE);
-            }
+                result.setVisibility(View.GONE);
+                if (f.arity() == 1) {
+                    graph3dView.setVisibility(View.GONE);
+                    graphView.setVisibility(View.VISIBLE);
+                } else {
+                    Graph3d.instance.setFunction(f);
+                    graphView.setVisibility(View.GONE);
+                    graph3dView.setVisibility(View.VISIBLE);
+                }
+                //}
             graphView.invalidate();
+            graph3dView.invalidate();
         }
     }
 
@@ -383,7 +397,7 @@ public class Calculator extends Activity implements TextWatcher,
 		history.onEnter(text, formatEval(value)) :
 		history.onEnter(text, null);
             if (arity == 2) {
-                graphed3d = f;
+                Graph3d.instance.setFunction(f);
                 startActivity(new Intent(this, ShowGraph3d.class));
             }
 	} catch (SyntaxException e) {

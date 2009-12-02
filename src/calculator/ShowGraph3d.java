@@ -18,13 +18,12 @@ import android.opengl.Matrix;
 
 public class ShowGraph3d extends Activity {
     private Graph3dView view;
-    private static Graph3d graph = new Graph3d();
     private float[] rotation = new float[16];
     private View dummy;
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        graph.setFunction(Calculator.graphed3d);
+        // Graph3d.instance.setFunction(Calculator.graphed3d);
         dummy = new View(this);
         Matrix.setIdentityM(rotation, 0);
         Matrix.rotateM(rotation, 0, -75, 1, 0, 0);
@@ -36,14 +35,12 @@ public class ShowGraph3d extends Activity {
         setContentView(dummy);
         view.stop();
         view = null;
-        // view.onPause();
     }
 
     protected void onResume() {
         super.onResume();
         Calculator.log("activity resume");
-        view = new Graph3dView(this, graph, rotation);
+        view = new Graph3dView(this, rotation);
         setContentView(view);
-        // view.onResume();
     }
 }
