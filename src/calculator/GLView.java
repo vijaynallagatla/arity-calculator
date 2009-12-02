@@ -24,11 +24,18 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     EGLContext eglContext;
     private boolean stopped;
 
-    protected abstract void onSurfaceChanged(GL10 gl, int width, int height);
+    protected abstract void onSurfaceChanged(GL11 gl, int width, int height);
     protected abstract void onDrawFrame(GL11 gl);
 
     public GLView(Context context) {
         super(context);
+        getHolder().addCallback(this);
+        getHolder().setType(SurfaceHolder.SURFACE_TYPE_GPU);        
+        init();
+    }
+
+    public GLView(Context context, AttributeSet attrs) {
+        super(context, attrs);
         getHolder().addCallback(this);
         getHolder().setType(SurfaceHolder.SURFACE_TYPE_GPU);        
         init();
@@ -100,7 +107,7 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         stopped = true;
         egl.eglMakeCurrent(display, EGL10.EGL_NO_SURFACE,
                            EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_CONTEXT);
-        egl.eglDestroySurface(display, surface);
+        // egl.eglDestroySurface(display, surface);
         egl.eglDestroyContext(display, eglContext);
         egl.eglTerminate(display);
     }
