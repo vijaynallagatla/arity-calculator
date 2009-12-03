@@ -16,7 +16,7 @@ import arity.calculator.R;
 public class Graph3dView extends GLView {
     private float lastTouchX, lastTouchY;
     private VelocityTracker velocityTracker;
-    private Scroller scroller;
+    // private Scroller scroller;
     private float angleX, angleY;
     private float[] matrix1, matrix2 = new float[16], matrix3 = new float[16];
     private int drawCnt;
@@ -34,26 +34,30 @@ public class Graph3dView extends GLView {
         matrix1 = new float[16];
         Matrix.setIdentityM(matrix1, 0);
         Matrix.rotateM(matrix1, 0, -75, 1, 0, 0);
-        scroller = new Scroller(context);
+        // scroller = new Scroller(context);
     }
 
     Graph3dView(Context context, float[] rotation) {
         super(context);
         matrix1 = rotation;
-        scroller = new Scroller(context);
+        // scroller = new Scroller(context);
     }
 
-    private static final float NEAR = 13;
-    protected void onSurfaceChanged(GL11 gl, int width, int height) {
-        Calculator.log("size " + width + ' ' + height);
+    protected void onSurfaceCreated(GL11 gl) {
         gl.glDisable(GL10.GL_DITHER);
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_FASTEST);               
         gl.glClearColor(0, 0, 0, 1);
         gl.glShadeModel(GL10.GL_SMOOTH);
         gl.glDisable(GL10.GL_LIGHTING);
-
         Graph3d.instance.init(gl);
-        
+        angleX = .5f;
+        angleY = 0;
+        isRotating = true;
+    }
+
+    private static final float NEAR = 13;
+    protected void onSurfaceChanged(GL11 gl, int width, int height) {
+        Calculator.log("size " + width + ' ' + height);        
         gl.glViewport(0, 0, width+1, height+1);
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
@@ -63,9 +67,6 @@ public class Graph3dView extends GLView {
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
         gl.glEnableClientState(GL10.GL_COLOR_ARRAY);
-        angleX = .5f;
-        angleY = 0;
-        isRotating = true;
     }
     
     public void onDrawFrame(GL11 gl) {
@@ -75,21 +76,6 @@ public class Graph3dView extends GLView {
             Calculator.log("time " + (now - lastTime));
             lastTime = now;
         }
-
-        /*
-        if (scroller.computeScrollOffset()) {
-            // Calculator.log("in scroll");
-            float x = scroller.getCurrX();
-            float y = scroller.getCurrY();
-            angleX = x - lastTouchX;
-            angleY = y - lastTouchY;
-            lastTouchX = x;
-            lastTouchY = y;
-            if (!scroller.isFinished()) {
-                requestDraw();
-            }
-        }
-        */
 
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
@@ -136,11 +122,6 @@ public class Graph3dView extends GLView {
         case MotionEvent.ACTION_DOWN:
             Calculator.log("down");
             isRotating = false;
-            /*
-            if (!scroller.isFinished()) {
-                scroller.abortAnimation();
-            }
-            */
             velocityTracker = VelocityTracker.obtain();
             velocityTracker.addMovement(event);
             lastTouchX = x;
