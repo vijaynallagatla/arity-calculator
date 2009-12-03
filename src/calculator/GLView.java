@@ -16,122 +16,139 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
-    GL11 gl;
-    EGLDisplay display;
-    EGLSurface surface;
-    EGL10 egl;
-    EGLConfig config;
-    EGLContext eglContext;
-    private boolean stopped;
+    private boolean hasSurface;
+    private boolean paused;
+    private EGL10 egl;
+    private EGLDisplay display;
+    private EGLConfig config;    
+    private EGLSurface surface;
+    private EGLContext eglContext;
+    private GL11 gl;
+    private int width, height;
 
     protected abstract void onSurfaceChanged(GL11 gl, int width, int height);
+    protected abstract void onSurfaceCreated(GL11 gl);
     protected abstract void onDrawFrame(GL11 gl);
 
     public GLView(Context context) {
         super(context);
         getHolder().addCallback(this);
         getHolder().setType(SurfaceHolder.SURFACE_TYPE_GPU);        
-        init();
     }
 
     public GLView(Context context, AttributeSet attrs) {
         super(context, attrs);
         getHolder().addCallback(this);
         getHolder().setType(SurfaceHolder.SURFACE_TYPE_GPU);        
-        init();
-    }
-    
-    protected void myDraw() {
-        // Calculator.log("draw " + stopped);
-        if (!stopped) {
-            onDrawFrame(gl);
-            egl.eglSwapBuffers(display, surface);
-            if (egl.eglGetError() == EGL11.EGL_CONTEXT_LOST) {
-                Calculator.log("egl context lost");
-                stop();
-            }
-        }
-    }
-
-    public void surfaceCreated(SurfaceHolder holder) {
-        Calculator.log("surfaceCreated");
-        surface = egl.eglCreateWindowSurface(display, config, getHolder(), null);
-        egl.eglMakeCurrent(display, surface, surface, eglContext);
-        gl = (GL11) eglContext.getGL();        
-    }
-    
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Calculator.log("surfaceChanged " + format);
-        onSurfaceChanged(gl, width, height);
-        myDraw();
-    }
-
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        Calculator.log("surfaceDestroyed");
-    }
-
-    /*
-    public void onPause() {
-        stopped = true;
     }
     
     public void onResume() {
-        stopped = false;
-        if (surface != null) {
-            draw();
+        Calculator.log("onResume " + this);
+        paused = false;
+        if (hasSurface) {
+            initGL();
         }
     }
-    */
 
-    private void init() {
+    public void onPause() {
+        Calculator.log("onPause " + this);
+        deinitGL();
+    }
+
+    private void initGL() {
         egl = (EGL10) EGLContext.getEGL();
         display = egl.eglGetDisplay(EGL10.EGL_DEFAULT_DISPLAY);
         int[] ver = new int[2];
+        Calculator.log("egl version " + ver[0] + ' ' + ver[1]);
         egl.eglInitialize(display, ver);
-
+        
         int[] configSpec = {EGL10.EGL_NONE};
         EGLConfig[] configOut = new EGLConfig[1];
         int[] nConfig = new int[1];
         egl.eglChooseConfig(display, configSpec, configOut, 1, nConfig);
         config = configOut[0];
-        Calculator.log("egl config: depth " + getConfig(EGL10.EGL_DEPTH_SIZE)
-                       + " stencil " + getConfig(EGL10.EGL_STENCIL_SIZE)
-                       + " red " + getConfig(EGL10.EGL_RED_SIZE)
-                       + " green " + getConfig(EGL10.EGL_GREEN_SIZE)
-                       + " blue " + getConfig(EGL10.EGL_BLUE_SIZE)
-                       + " apha " + getConfig(EGL10.EGL_ALPHA_SIZE));
         eglContext = egl.eglCreateContext(display, config, EGL10.EGL_NO_CONTEXT, null);
-    }    
-
-    public void stop() {
-        stopped = true;
-        egl.eglMakeCurrent(display, EGL10.EGL_NO_SURFACE,
-                           EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_CONTEXT);
-        // egl.eglDestroySurface(display, surface);
-        egl.eglDestroyContext(display, eglContext);
-        egl.eglTerminate(display);
+        surface = egl.eglCreateWindowSurface(display, config, getHolder(), null);
+        egl.eglMakeCurrent(display, surface, surface, eglContext);
+        gl = (GL11) eglContext.getGL();
+        onSurfaceCreated(gl);
+        onSurfaceChanged(gl, width, height);
+        myDraw();
     }
 
-    /*
+    private void deinitGL() {
+        paused = true;
+        if (display != null) {
+            egl.eglMakeCurrent(display, EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_SURFACE, EGL10.EGL_NO_CONTEXT);
+            egl.eglDestroySurface(display, surface);
+            egl.eglDestroyContext(display, eglContext);
+            egl.eglTerminate(display);
+
+            egl = null;
+            config = null;
+            eglContext = null;
+            surface = null;
+            display = null;
+            gl = null;
+        }
+    }
+
+    protected void myDraw() {
+        // Calculator.log("draw " + stopped);
+        if (hasSurface && !paused) {
+            // Calculator.log("myDraw " + this);
+            onDrawFrame(gl);
+            if (!egl.eglSwapBuffers(display, surface)) {
+                Calculator.log("swapBuffers error " + egl.eglGetError());
+            }
+            if (egl.eglGetError() == EGL11.EGL_CONTEXT_LOST) {
+                Calculator.log("egl context lost " + this);
+                paused = true;
+            }
+        }
+    }
+
+    protected void onSizeChanged(int w, int h, int ow, int oh) {
+        Calculator.log("onSizeChanged " + w + ' ' + h + ' ' + this);
+        width = w;
+        height = h;
+        if (hasSurface && !paused) {
+            // onSurfaceChanged(gl, w, h);
+        }
+    }
+
+    public void surfaceCreated(SurfaceHolder holder) {
+        Calculator.log("surfaceCreated " + this);
+    }
+    
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        Calculator.log("surfaceChanged " + format + ' ' + this);
+        this.width  = width;
+        this.height = height;
+        if (!hasSurface && !paused) {
+            hasSurface = true;
+            initGL();
+        } else {
+            hasSurface = true;
+            onSurfaceChanged(gl, width, height);
+            myDraw();
+        }
+    }
+
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        Calculator.log("surfaceDestroyed " + this);
+        hasSurface = false;
+        deinitGL();
+    }
+
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        Calculator.log("onAttachedToWindow");
+        Calculator.log("onAttachedToWindow " + this);
     }
-    */
 
-    /*
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        Calculator.log("onDetachedFromWindow");
+        Calculator.log("onDetachedFromWindow " + this);
         // deinit();
-    }
-    */
-    
-    private int getConfig(int atrib) {
-        int[] ret = new int[1];
-        if (egl.eglGetConfigAttrib(display, config, atrib, ret)) {
-            return ret[0];
-        }
-        return -1;
     }
 }

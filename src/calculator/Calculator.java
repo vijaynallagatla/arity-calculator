@@ -150,9 +150,15 @@ public class Calculator extends Activity implements TextWatcher,
     
     public void onPause() {
         super.onPause();
+        graph3dView.onPause();
 	history.updateEdited(input.getText().toString());
         history.save();
 	defs.save();
+    }
+
+    public void onResume() {
+        super.onResume();
+        graph3dView.onResume();
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
