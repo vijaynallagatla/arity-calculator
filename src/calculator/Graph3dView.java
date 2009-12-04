@@ -1,3 +1,5 @@
+// Copyright (C) 2009 Mihai Preda
+
 package calculator;
 
 import android.opengl.GLSurfaceView;
@@ -11,17 +13,19 @@ import android.util.AttributeSet;
 import android.opengl.Matrix;
 import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.opengles.GL11;
-import arity.calculator.R;
+import org.javia.arity.Function;
 
-public class Graph3dView extends GLView {
+public class Graph3dView extends GLView implements Grapher {
     private float lastTouchX, lastTouchY;
     private VelocityTracker velocityTracker;
-    // private Scroller scroller;
     private float angleX, angleY;
-    private float[] matrix1, matrix2 = new float[16], matrix3 = new float[16];
+    private float[] matrix1 = new float[16], matrix2 = new float[16], matrix3 = new float[16];
     private int drawCnt;
     private long lastTime;
     private boolean isRotating;
+    private boolean isFullScreen;
+    private boolean isDirty;
+    private Function function;
 
     private Handler handler = new Handler() {
             public void handleMessage(Message msg) {
@@ -31,16 +35,25 @@ public class Graph3dView extends GLView {
 
     public Graph3dView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        matrix1 = new float[16];
-        Matrix.setIdentityM(matrix1, 0);
-        Matrix.rotateM(matrix1, 0, -75, 1, 0, 0);
-        // scroller = new Scroller(context);
+        isFullScreen = false;
+        init();
     }
 
-    Graph3dView(Context context, float[] rotation) {
+    public Graph3dView(Context context) {
         super(context);
-        matrix1 = rotation;
-        // scroller = new Scroller(context);
+        isFullScreen = true;
+        init();
+    }
+
+    private void init() {
+        Matrix.setIdentityM(matrix1, 0);
+        Matrix.rotateM(matrix1, 0, -75, 1, 0, 0);
+    }
+
+    public void setFunction(Function f) {
+        function = f;
+        isDirty = true;
+        // forceDraw();
     }
 
     protected void onSurfaceCreated(GL11 gl) {
@@ -49,20 +62,21 @@ public class Graph3dView extends GLView {
         gl.glClearColor(0, 0, 0, 1);
         gl.glShadeModel(GL10.GL_SMOOTH);
         gl.glDisable(GL10.GL_LIGHTING);
-        Graph3d.instance.init(gl);
+        Graph3d.instance.init(gl, function);
+        isDirty = false;
         angleX = .5f;
         angleY = 0;
         isRotating = true;
     }
 
-    private static final float NEAR = 13;
+    private static final float NEAR = 11;
     protected void onSurfaceChanged(GL11 gl, int width, int height) {
-        Calculator.log("size " + width + ' ' + height);        
+        // Calculator.log("size " + width + ' ' + height);        
         gl.glViewport(0, 0, width+1, height+1);
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
         float h = NEAR/5f * height / (float) width;
-        gl.glFrustumf(-NEAR/5f, NEAR/5f, -h, h, NEAR, NEAR+12);
+        gl.glFrustumf(-NEAR/5f, NEAR/5f, -h, h, NEAR, NEAR+18);
         // gl.glOrthof(-NEAR, NEAR, -h, h, NEAR, NEAR+12);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
@@ -70,17 +84,21 @@ public class Graph3dView extends GLView {
     }
     
     public void onDrawFrame(GL11 gl) {
+        if (isDirty) {
+            Graph3d.instance.update(gl, function);
+            isDirty = false;
+        }
         if (--drawCnt <= 0) {
             drawCnt = 10;
             long now = System.currentTimeMillis();
-            Calculator.log("time " + (now - lastTime));
+            // Calculator.log("time " + (now - lastTime));
             lastTime = now;
         }
 
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glLoadIdentity();
-        gl.glTranslatef(0, 0, -(NEAR+6.5f));
+        gl.glTranslatef(0, 0, -(NEAR+9f));
 
         Matrix.setIdentityM(matrix2, 0);
         float ax = Math.abs(angleX);
@@ -115,12 +133,16 @@ public class Graph3dView extends GLView {
     }
 
     public boolean onTouchEvent(MotionEvent event) {
+        if (!isFullScreen) {
+            isRotating = false;
+            return super.onTouchEvent(event);
+        }
+
         int action = event.getAction();
         float x = event.getX();
         float y = event.getY();
         switch (action) {
         case MotionEvent.ACTION_DOWN:
-            Calculator.log("down");
             isRotating = false;
             velocityTracker = VelocityTracker.obtain();
             velocityTracker.addMovement(event);
@@ -142,7 +164,6 @@ public class Graph3dView extends GLView {
             break;
             
         case MotionEvent.ACTION_UP:
-            Calculator.log("up");
             velocityTracker.computeCurrentVelocity(1000);
             float vx = velocityTracker.getXVelocity();
             float vy = velocityTracker.getYVelocity();

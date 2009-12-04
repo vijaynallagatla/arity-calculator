@@ -21,7 +21,6 @@ class Graph3d {
 
     private ShortBuffer verticeIdx;
     private int vertexVbo, colorVbo, vertexElementVbo;
-    private Function function;    
     
     private Graph3d() {
         short[] b = new short[N*N];
@@ -42,10 +41,6 @@ class Graph3d {
         verticeIdx = buildBuffer(b);
     }
 
-    public void setFunction(Function f) {
-        function = f;
-    }
-
     private static FloatBuffer buildBuffer(float[] b) {
         ByteBuffer bb = ByteBuffer.allocateDirect(b.length << 2);
         bb.order(ByteOrder.nativeOrder());
@@ -64,12 +59,21 @@ class Graph3d {
         return sb;
     }
 
-    public void init(GL11 gl) {
+    public void init(GL11 gl, Function f) {
+        int[] out = new int[3];
+        gl.glGenBuffers(3, out, 0);        
+        vertexVbo = out[0];
+        colorVbo  = out[1];
+        vertexElementVbo = out[2];
+        update(gl, f);
+    }
+
+    public void update(GL11 gl, Function f) {
+        Calculator.log("update VBOs " + vertexVbo + ' ' + colorVbo + ' ' + vertexElementVbo);
         int nVertex = N*N+6+8;
         int nFloats = nVertex * 3;
         float vertices[] = new float[nFloats];
         float colors[] = new float[nFloats];        
-        Function f = function;
         if (f != null) {
             float sizeX = maxX - minX;
             float sizeY = maxY - minY;
@@ -136,16 +140,7 @@ class Graph3d {
             colors[i] = 1;
             colors[i+1] = 1;
             colors[i+2] = 1;
-        }
-        
-        int[] out = new int[3];
-        gl.glGenBuffers(3, out, 0);
-        
-        vertexVbo = out[0];
-        colorVbo  = out[1];
-        vertexElementVbo = out[2];
-        Calculator.log("initing VBOs " + vertexVbo + ' ' + colorVbo + ' ' + vertexElementVbo);        
-        
+        }                
 
         int nBytes = nFloats * 4;
         gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, vertexVbo);
