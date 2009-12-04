@@ -35,7 +35,7 @@ import arity.calculator.R;
 
 import org.javia.arity.*;
 
-public class GraphView extends View {
+public class GraphView extends View implements Grapher {
     private int width, height;
     private Matrix matrix = new Matrix();
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
@@ -53,15 +53,32 @@ public class GraphView extends View {
 
     public GraphView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        isFullScreen = false;
+        init(context);
+    }
+
+    public GraphView(Context context) {
+        super(context);
+        isFullScreen = true;
+        init(context);
+    }
+
+    private void init(Context context) {
         scroller = new Scroller(context);
         paint.setAntiAlias(false);
         textPaint.setAntiAlias(true);
     }
 
-    void setFunction(Function f, boolean isFullScreen) {
+    public void setFunction(Function f) {
         this.function = f;
-        this.isFullScreen = isFullScreen;
         graph.clear();
+        invalidate();
+    }
+
+    public void onPause() {
+    }
+
+    public void onResume() {
     }
 
     protected void onSizeChanged(int w, int h, int ow, int oh) {
@@ -251,27 +268,6 @@ public class GraphView extends View {
             return f;
         }
     }
-
-    /*
-    private static StringBuilder builder = new StringBuilder();
-    private static StringBuilder format(float v) {
-        builder.setLength(0);
-        if (Math.abs(v - (int)v) < .001f) {
-            int rv = Math.round(v);
-            if (rv != 0) {
-                builder.append(Math.round(v));
-            }
-        } else {
-            v *= 10;
-            if (Math.abs(v - (int) v) < .001f) {
-                builder.append(Math.round(v)/10.);
-            } else {
-                builder.append(Math.round(v*10)/100.);
-            }
-        }
-        return builder;
-    }
-    */
 
     private static StringBuilder b = new StringBuilder();
     private static char[] buf = new char[20];
