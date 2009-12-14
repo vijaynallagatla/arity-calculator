@@ -20,7 +20,9 @@ class Graph3d {
     private float minX = -4, maxX = 4, minY = -4, maxY = 4; 
 
     private ShortBuffer verticeIdx;
+    private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
+    private static final boolean useVBO = false;
     
     private Graph3d() {
         short[] b = new short[N*N];
@@ -60,11 +62,13 @@ class Graph3d {
     }
 
     public void init(GL11 gl, Function f) {
-        int[] out = new int[3];
-        gl.glGenBuffers(3, out, 0);        
-        vertexVbo = out[0];
-        colorVbo  = out[1];
-        vertexElementVbo = out[2];
+        if (useVBO) {
+            int[] out = new int[3];
+            gl.glGenBuffers(3, out, 0);        
+            vertexVbo = out[0];
+            colorVbo  = out[1];
+            vertexElementVbo = out[2];
+        }
         update(gl, f);
     }
 
@@ -142,33 +146,44 @@ class Graph3d {
             colors[i+2] = 1;
         }                
 
-        int nBytes = nFloats * 4;
-        gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, vertexVbo);
-        gl.glBufferData(GL11.GL_ARRAY_BUFFER, nBytes, buildBuffer(vertices), GL11.GL_STATIC_DRAW);
+        vertexBuf = buildBuffer(vertices);
+        colorBuf  = buildBuffer(colors);
+
+        if (useVBO) {
+            int nBytes = nFloats * 4;
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, vertexVbo);
+            gl.glBufferData(GL11.GL_ARRAY_BUFFER, nBytes, vertexBuf, GL11.GL_STATIC_DRAW);
+            
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, colorVbo);
+            gl.glBufferData(GL11.GL_ARRAY_BUFFER, nBytes, colorBuf, GL11.GL_STATIC_DRAW);
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);            
         
-        gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, colorVbo);
-        gl.glBufferData(GL11.GL_ARRAY_BUFFER, nBytes, buildBuffer(colors), GL11.GL_STATIC_DRAW);
-        gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);            
-        
-        gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, vertexElementVbo);
-        gl.glBufferData(GL11.GL_ELEMENT_ARRAY_BUFFER, verticeIdx.capacity()*2, verticeIdx, GL11.GL_STATIC_DRAW);
-        gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, 0);
+            gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, vertexElementVbo);
+            gl.glBufferData(GL11.GL_ELEMENT_ARRAY_BUFFER, verticeIdx.capacity()*2, verticeIdx, GL11.GL_STATIC_DRAW);
+            gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
     }
 
     public void draw(GL11 gl) {
-        gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, vertexVbo);
-        gl.glVertexPointer(3, GL10.GL_FLOAT, 0, 0);
+        if (useVBO) {
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, vertexVbo);
+            gl.glVertexPointer(3, GL10.GL_FLOAT, 0, 0);
 
-        gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, colorVbo);
-        gl.glColorPointer(3, GL10.GL_FLOAT, 0, 0);
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, colorVbo);
+            gl.glColorPointer(3, GL10.GL_FLOAT, 0, 0);
 
-        gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
+            // gl.glDrawArrays(GL10.GL_LINE_STRIP, 0, N*N);
+
+            gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, vertexElementVbo);        
+            gl.glDrawElements(GL10.GL_LINE_STRIP, N*N, GL10.GL_UNSIGNED_SHORT, 0);
+            gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, 0);
+        } else {
+            gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuf);
+            gl.glColorPointer(3, GL10.GL_FLOAT, 0, colorBuf);
+            gl.glDrawElements(GL10.GL_LINE_STRIP, N*N, GL10.GL_UNSIGNED_SHORT, verticeIdx);
+        }
         gl.glDrawArrays(GL10.GL_LINE_STRIP, 0, N*N);
-
-        gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, vertexElementVbo);        
-        gl.glDrawElements(GL10.GL_LINE_STRIP, N*N, GL10.GL_UNSIGNED_SHORT, 0);
-        gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, 0);
-
         gl.glDrawArrays(GL10.GL_LINES, N*N, 6+8);
     }
 }
