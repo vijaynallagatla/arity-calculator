@@ -42,13 +42,13 @@ public class GraphView extends View implements Grapher {
     private Function function;
     private Data next = new Data(), graph = new Data(), endGraph = new Data();
     private float gwidth = 8;
-    private float currentX = 0;
-    private float lastMinX = 0;
+    private float currentX, currentY;
+    private float lastMinX;
     private boolean isFullScreen;
     private VelocityTracker velocityTracker;
     private Scroller scroller;
     private boolean active;
-    private float lastTouchX;
+    private float lastTouchX, lastTouchY;
     private float points[];
 
     public GraphView(Context context, AttributeSet attrs) {
@@ -308,10 +308,11 @@ public class GraphView extends View implements Grapher {
         long t1 = System.currentTimeMillis();
         float minX = currentX - gwidth/2;
         float maxX = minX + gwidth;
-        float maxY = gwidth * height / (width*2);
-        float minY = -maxY;
+        float ywidth = gwidth * height / width;
+        float minY = currentY - ywidth/2;
+        float maxY = minY + ywidth;
 
-        canvas.drawColor(0xffffffff);
+        canvas.drawColor(0xff000000);
                 
         paint.setStrokeWidth(0);
         paint.setAntiAlias(false);
@@ -324,19 +325,25 @@ public class GraphView extends View implements Grapher {
         boolean drawYAxis = true;
         if (x0 < 15) {
             x0 = 15;
-            drawYAxis = false;
+            // drawYAxis = false;
         } else if (x0 > width - 3) {
             x0 = width - 3;
-            drawYAxis = false;
+            // drawYAxis = false;
+        }
+        float y0 = maxY * scale;
+        if (y0 < 15) {
+            y0 = 15;
+        } else if (y0 > height - 3) {
+            y0 = height - 3;
         }
 
         final float tickSize = 3;
-        final float y2 = h2 + tickSize;
-        paint.setColor(0xffd0ffd0);
+        final float y2 = y0 + tickSize;
+        paint.setColor(0xff800000);
         float step = stepFactor(gwidth);
         // Calculator.log("width " + gwidth + " step " + step);
         float v = ((int) (minX/step)) * step;
-        textPaint.setColor(0xff00b000);
+        textPaint.setColor(0xffff0000);
         textPaint.setTextSize(10);
         textPaint.setTextAlign(Paint.Align.CENTER);
         float stepScale = step * scale;
@@ -363,15 +370,15 @@ public class GraphView extends View implements Grapher {
         if (drawYAxis) {
             canvas.drawLine(x0, 0, x0, height, paint);
         }
-        canvas.drawLine(0, h2, width, h2, paint);
+        canvas.drawLine(0, y0, width, y0, paint);
         long t3 = System.currentTimeMillis();
         
         matrix.reset();
-        matrix.preTranslate(-currentX, 0);
+        matrix.preTranslate(-currentX, -currentY);
         matrix.postScale(scale, -scale);
         matrix.postTranslate(width/2, height/2);
 
-        paint.setColor(0xff000000);
+        paint.setColor(0xff00ff00);
         paint.setStrokeWidth(0);
         paint.setAntiAlias(true);
 
@@ -441,7 +448,7 @@ public class GraphView extends View implements Grapher {
             return true;
         }        
         switch (action) {
-        case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_DOWN:
             if (!scroller.isFinished()) {
                 scroller.abortAnimation();
             }
@@ -456,17 +463,25 @@ public class GraphView extends View implements Grapher {
                 }
             }
             active = true;
-            velocityTracker = VelocityTracker.obtain();
+            if (velocityTracker == null) {
+                velocityTracker = VelocityTracker.obtain();
+            }
             velocityTracker.addMovement(event);
             lastTouchX = x;
+            lastTouchY = y;
             break;
 
         case MotionEvent.ACTION_MOVE:
+            if (velocityTracker == null) {
+                velocityTracker = VelocityTracker.obtain();
+            }
             velocityTracker.addMovement(event);
-            float deltaPix = x - lastTouchX;
-            if (deltaPix > 3 || deltaPix < -3) {
-                scroll(-deltaPix);
+            float deltaX = x - lastTouchX;
+            float deltaY = y - lastTouchY;
+            if (deltaX < -1 || deltaX > 1 || deltaY < -1 || deltaY > 1) {
+                scroll(-deltaX, deltaY);
                 lastTouchX = x;
+                lastTouchY = y;
                 invalidate();
             }
             break;
@@ -478,20 +493,25 @@ public class GraphView extends View implements Grapher {
             invalidate();
             // no break
 
-        default:
+        case MotionEvent.ACTION_CANCEL:
             if (velocityTracker != null) {
                 velocityTracker.recycle();
                 velocityTracker = null;
             }
+            break;
             
+        default: 
+            // ignore
         }
         return true;
     }
 
-    private void scroll(float deltaPix) {
+    private void scroll(float deltaX, float deltaY) {
         float scale = gwidth / width;
-        float delta = deltaPix * scale;
-        currentX += delta;
+        float dx = deltaX * scale;
+        float dy = deltaY * scale;
+        currentX += dx;
+        currentY += dy;
         invalidate();
     }
 }
