@@ -16,6 +16,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.opengl.GLSurfaceView.Renderer;
 
 abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private boolean hasSurface;
@@ -28,10 +29,11 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private GL11 gl;
     private int width, height;
     private boolean sizeChangePending;
+    private Renderer renderer;
 
-    protected abstract void onSurfaceChanged(GL11 gl, int width, int height);
-    protected abstract void onSurfaceCreated(GL11 gl);
-    protected abstract void onDrawFrame(GL11 gl);
+    public void setRenderer(Renderer renderer) {
+        this.renderer = renderer;
+    }
 
     public GLView(Context context) {
         super(context);
@@ -77,8 +79,8 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         surface = egl.eglCreateWindowSurface(display, config, getHolder(), null);
         egl.eglMakeCurrent(display, surface, surface, eglContext);
         gl = (GL11) eglContext.getGL();
-        onSurfaceCreated(gl);
-        onSurfaceChanged(gl, width, height);
+        renderer.onSurfaceCreated(gl, null);
+        renderer.onSurfaceChanged(gl, width, height);
         myDraw();
     }
 
@@ -103,7 +105,7 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         // Calculator.log("draw " + stopped);
         if (hasSurface && !paused) {
             // Calculator.log("myDraw " + this);
-            onDrawFrame(gl);
+            renderer.onDrawFrame(gl);
             if (!egl.eglSwapBuffers(display, surface)) {
                 Calculator.log("swapBuffers error " + egl.eglGetError());
             }
@@ -111,34 +113,8 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
                 Calculator.log("egl context lost " + this);
                 paused = true;
             }
-            /*
-            if (sizeChangePending) {
-                sizeChangePending = false;
-                onSurfaceChanged(gl, width, height);
-            }
-            */
         }
     }
-
-    /*
-    public void forceDraw() {
-        if (hasSurface) {
-            onDrawFrame(gl);
-            egl.eglSwapBuffers(display, surface);
-        }
-    }
-    */
-
-    /*
-    protected void onSizeChanged(int w, int h, int ow, int oh) {
-        Calculator.log("onSizeChanged " + w + ' ' + h + ' ' + this);
-        width = w;
-        height = h;
-        if (hasSurface && !paused) {
-            // onSurfaceChanged(gl, w, h);
-        }
-    }
-    */
 
     public void surfaceCreated(SurfaceHolder holder) {
         Calculator.log("surfaceCreated " + this);
@@ -153,9 +129,6 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
             initGL();
         } else {
             hasSurface = true;
-            // onSurfaceChanged(gl, width, height);
-            // myDraw();
-            // sizeChangePending = true;
         }
     }
 
@@ -164,17 +137,4 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         hasSurface = false;
         deinitGL();
     }
-
-    /*
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        Calculator.log("onAttachedToWindow " + this);
-    }
-
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        Calculator.log("onDetachedFromWindow " + this);
-        // deinit();
-    }
-    */
 }

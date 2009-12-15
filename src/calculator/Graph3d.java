@@ -22,7 +22,7 @@ class Graph3d {
     private ShortBuffer verticeIdx;
     private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
-    private static final boolean useVBO = false;
+    private boolean useVBO;
     
     private Graph3d() {
         short[] b = new short[N*N];
@@ -61,7 +61,12 @@ class Graph3d {
         return sb;
     }
 
-    public void init(GL11 gl, Function f) {
+    public void init(GL10 gl10, Function f) {
+        GL11 gl = (GL11) gl10;
+        String extensions = gl.glGetString(GL10.GL_EXTENSIONS);
+        useVBO = extensions.indexOf("vertex_buffer_object") != -1;
+        Calculator.log("VBOs support: " + useVBO + " version " + gl.glGetString(GL10.GL_VERSION));
+        
         if (useVBO) {
             int[] out = new int[3];
             gl.glGenBuffers(3, out, 0);        
@@ -77,8 +82,9 @@ class Graph3d {
         int nVertex = N*N+6+8;
         int nFloats = nVertex * 3;
         float vertices[] = new float[nFloats];
-        float colors[] = new float[nFloats];        
+        float colors[] = new float[nVertex << 2];        
         if (f != null) {
+            Calculator.log("Graph3d update");
             float sizeX = maxX - minX;
             float sizeY = maxY - minY;
             float stepX = sizeX / (N-1);
@@ -105,15 +111,17 @@ class Graph3d {
             }
             maxAbs = Math.min(maxAbs, 6);
 
-            for (int i = (N*N*3-3); i >= 0; i-=3) {
-                float z = vertices[i+2];
+            for (int i = (N*N*4-4), j = (N*N*3-3); i >= 0; i-=4, j-=3) {
+                float z = vertices[j+2];
                 float a = z / maxAbs;
                 colors[i] = a + 1;
                 colors[i+1] = a > 0 ? a : -a;
                 colors[i+2] = -a + 1;
+                colors[i+3] = 1;
             }
         }
         final int base = N*N*3;
+        final int colorBase = N*N*4;
         int p = base;
         for (int i = -4; i <= 4; i+=8) {
             vertices[p] = i; vertices[p+1] = -4; vertices[p+2] = 0;
@@ -125,10 +133,11 @@ class Graph3d {
             vertices[p] = 4; vertices[p+1] = i; vertices[p+2] = 0;
             p += 3;
         }
-        for (int i = base; i < base+8*3; i += 3) {
+        for (int i = colorBase; i < colorBase+8*4; i += 4) {
             colors[i] = 0;
             colors[i+1] = 0;
             colors[i+2] = 1;
+            colors[i+3] = 1;
         }
         final float unit = 6;
         final float axis[] = {
@@ -140,23 +149,25 @@ class Graph3d {
             0, 0, unit,
         };
         System.arraycopy(axis, 0, vertices, base+8*3, 6*3);
-        for (int i = base+8*3; i < base+(6+8)*3; i+=3) {
+        for (int i = colorBase+8*4; i < colorBase+(6+8)*4; i+=4) {
             colors[i] = 1;
             colors[i+1] = 1;
             colors[i+2] = 1;
+            colors[i+3] = 1;
         }                
 
         vertexBuf = buildBuffer(vertices);
         colorBuf  = buildBuffer(colors);
 
         if (useVBO) {
-            int nBytes = nFloats * 4;
             gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, vertexVbo);
-            gl.glBufferData(GL11.GL_ARRAY_BUFFER, nBytes, vertexBuf, GL11.GL_STATIC_DRAW);
-            
+            gl.glBufferData(GL11.GL_ARRAY_BUFFER, vertexBuf.capacity()*4, vertexBuf, GL11.GL_STATIC_DRAW);           
+            vertexBuf = null;
+
             gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, colorVbo);
-            gl.glBufferData(GL11.GL_ARRAY_BUFFER, nBytes, colorBuf, GL11.GL_STATIC_DRAW);
-            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);            
+            gl.glBufferData(GL11.GL_ARRAY_BUFFER, colorBuf.capacity()*4, colorBuf, GL11.GL_STATIC_DRAW);
+            gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
+            colorBuf = null;            
         
             gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, vertexElementVbo);
             gl.glBufferData(GL11.GL_ELEMENT_ARRAY_BUFFER, verticeIdx.capacity()*2, verticeIdx, GL11.GL_STATIC_DRAW);
@@ -170,7 +181,7 @@ class Graph3d {
             gl.glVertexPointer(3, GL10.GL_FLOAT, 0, 0);
 
             gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, colorVbo);
-            gl.glColorPointer(3, GL10.GL_FLOAT, 0, 0);
+            gl.glColorPointer(4, GL10.GL_FLOAT, 0, 0);
 
             gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
             // gl.glDrawArrays(GL10.GL_LINE_STRIP, 0, N*N);
@@ -180,7 +191,7 @@ class Graph3d {
             gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, 0);
         } else {
             gl.glVertexPointer(3, GL10.GL_FLOAT, 0, vertexBuf);
-            gl.glColorPointer(3, GL10.GL_FLOAT, 0, colorBuf);
+            gl.glColorPointer(4, GL10.GL_FLOAT, 0, colorBuf);
             gl.glDrawElements(GL10.GL_LINE_STRIP, N*N, GL10.GL_UNSIGNED_SHORT, verticeIdx);
         }
         gl.glDrawArrays(GL10.GL_LINE_STRIP, 0, N*N);
