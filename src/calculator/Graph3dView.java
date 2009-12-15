@@ -59,6 +59,7 @@ public class Graph3dView extends GLView implements Grapher {
     }
 
     public boolean onTouchEvent(MotionEvent event) {
+        // Calculator.log("touch " + event);
         if (!isFullScreen) {
             // isRotating = false;
             return super.onTouchEvent(event);
@@ -70,13 +71,18 @@ public class Graph3dView extends GLView implements Grapher {
         switch (action) {
         case MotionEvent.ACTION_DOWN:
             isRotating = false;
-            velocityTracker = VelocityTracker.obtain();
+            if (velocityTracker == null) {
+                velocityTracker = VelocityTracker.obtain();
+            }
             velocityTracker.addMovement(event);
             lastTouchX = x;
             lastTouchY = y;
             break;
 
         case MotionEvent.ACTION_MOVE:
+            if (velocityTracker == null) {
+                velocityTracker = VelocityTracker.obtain();
+            }
             velocityTracker.addMovement(event);
             float deltaX = x - lastTouchX;
             float deltaY = y - lastTouchY;
@@ -99,12 +105,17 @@ public class Graph3dView extends GLView implements Grapher {
             if (isRotating) {
                 requestDraw();
             }
+            // no break
 
-        default:
+        case MotionEvent.ACTION_CANCEL:
             if (velocityTracker != null) {
                 velocityTracker.recycle();
                 velocityTracker = null;
             }
+            break;
+
+        default:
+            // Calculator.log("touch action " + action + ' ' + event);
         }
         return true;
     }
