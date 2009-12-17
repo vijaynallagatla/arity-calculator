@@ -61,7 +61,7 @@ public class GraphView extends View implements Grapher {
     */
 
     private static final int
-        COL_AXIS = 0xff008000,
+        COL_AXIS = 0xff00a000,
         COL_GRID = 0xff004000,
         COL_TEXT = 0xff00ff00,
         COL_GRAPH = 0xffffffff;
@@ -150,14 +150,33 @@ public class GraphView extends View implements Grapher {
     }
     */
 
+    // distance from (x,y) to the line (x1,y1) to (x2,y2), squared, multiplied by 4
+    /*
+    private float distance(float x1, float y1, float x2, float y2, float x, float y) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float mx = x - x1;
+        float my = y - y1;
+        float up = dx*my - dy*mx;
+        return up*up*4/(dx*dx + dy*dy);
+    }
+    */
+    
+    // distance as above when x==(x1+x2)/2. 
+    private float distance2(float x1, float y1, float x2, float y2, float y) {
+        final float dx = x2 - x1;
+        final float dy = y2 - y1;
+        final float up = dx * (y1 + y2 - y - y);
+        return up*up/(dx*dx + dy*dy);
+    }
+
     private Data computeGraph(float minX, float maxX, float minY, float maxY) {
         long t1 = System.currentTimeMillis();
         final float scale = width / gwidth;
-        final float maxStep = Math.min(15.8976f / scale, 1.373f);
-        final float minStep = .3f / scale;
-        // Calculator.log("step min " + minStep + " max " + maxStep);
-        final float ythresh = 2/scale;
-        // final float ythresh2 = 1.5f * ythresh;
+        final float maxStep = 15.8976f / scale;
+        final float minStep = .05f / scale;
+        float ythresh = 1/scale;
+        ythresh = ythresh * ythresh;
         next.clear();
         endGraph.clear();
         if (!graph.empty()) {
@@ -176,18 +195,15 @@ public class GraphView extends View implements Grapher {
         if (graph.empty()) {
             graph.push(minX, eval(minX));
         }
-        float leftX = graph.topX();
-        float leftY = graph.topY();
-        float rightX = 0, rightY = 0;
-        boolean advance = false;
+        float leftX, leftY;
+        float rightX = graph.topX(), rightY = graph.topY();
         int nEval = 1;
         while (true) {
-            if (advance) {
-                leftX = rightX;
-                leftY = rightY;
-                next.pop();
+            leftX = rightX;
+            leftY = rightY;
+            if (leftX > maxX) {
+                break;
             }
-            advance = true;
             if (next.empty()) {
                 float x = leftX + maxStep;
                 next.push(x, eval(x));
@@ -195,68 +211,71 @@ public class GraphView extends View implements Grapher {
             }
             rightX = next.topX();
             rightY = next.topY();
-            if (leftX > maxX) {
-                break;
-            }
+            next.pop();
+
             if (leftY != leftY && rightY != rightY) { // NaN
                 continue;
             }
+
             /*
-            if ((leftY < minY && rightY > maxY) || 
-                (leftY > maxY && rightY < minY)) {
-                graph.push(rightX, Float.NaN);
-                graph.push(rightX, rightY);
-                continue;
+            if (!next.empty()) {
+                float ox = next.topX();
+                float oy = next.topY();
+                if ((!((oy < leftY && oy < rightY) || (oy > leftY && oy > rightY))) &&
+                    distance(leftX, leftY, rightX, rightY, ox, oy) < ythresh) {
+                    next.pop();
+                    graph.push(ox, oy);
+                    rightX = ox;
+                    rightY = oy;
+                    Calculator.log("shortcut");
+                    continue;
+                }
             }
             */
 
-            float span = rightX - leftX;
+            float dx = rightX - leftX;
             float middleX = (leftX + rightX) / 2;
             float middleY = eval(middleX);
             ++nEval;
-            boolean isKinky = (middleY < leftY && middleY < rightY) || (leftY < middleY && rightY < middleY);
-            if (span < minStep) {
+            boolean middleIsOutside = (middleY < leftY && middleY < rightY) || (leftY < middleY && rightY < middleY);
+            if (dx < minStep) {
                 // Calculator.log("minStep");
-                if (isKinky) {
+                if (middleIsOutside) {
                     graph.push(rightX, Float.NaN);
                 }
                 graph.push(rightX, rightY);
                 continue;
             }
-            if (isKinky && ((leftY < minY && rightY > maxY) || (leftY > maxY && rightY < minY))) {
+            if (middleIsOutside && ((leftY < minY && rightY > maxY) || (leftY > maxY && rightY < minY))) {
                 graph.push(rightX, Float.NaN);
                 graph.push(rightX, rightY);
-                Calculator.log("+-inf");
+                // Calculator.log("+-inf");
                 continue;
             }
 
-            /*
-            if ((leftY < minY && middleY > maxY) ||
-                (leftY > maxY && middleY < minY)) {
-                graph.push(middleX, Float.NaN);
-                graph.push(middleX, middleY);
-                leftX = middleX;
-                leftY = middleY;
-                advance = false;
-                continue;
+            if (!middleIsOutside) {
+                /*
+                float diff = leftY + rightY - middleY - middleY;
+                float dy = rightY - leftY;
+                float dx2 = dx*dx;
+                float distance = dx2*diff*diff/(dx2+dy*dy);
+                */
+                // Calculator.log("" + dx + ' ' + leftY + ' ' + middleY + ' ' + rightY + ' ' + distance + ' ' + ythresh);
+                if (distance2(leftX, leftY, rightX, rightY, middleY) < ythresh) {
+                    graph.push(rightX, rightY);
+                    continue;
+                }
             }
-            */
-
-            float diff = Math.abs(leftY + rightY - middleY - middleY);
-            Calculator.log("" + span + ' ' + leftY + ' ' + middleY + ' ' + rightY + ' ' + diff + ' ' + ythresh);
-            if (diff < ythresh) {
-                // Calculator.log("+ ythresh");
-                graph.push(rightX, rightY);
-            } else {                
-                next.push(middleX, middleY);
-                advance = false;
-            }
+            next.push(rightX, rightY);
+            next.push(middleX, middleY);
+            rightX = leftX;
+            rightY = leftY;
         }
         if (!endGraph.empty()) {
             graph.append(endGraph);
         }
         long t2 = System.currentTimeMillis();
-        Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
+        // Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
         return graph;
     }
     
@@ -351,7 +370,7 @@ public class GraphView extends View implements Grapher {
             boundMinY = minY - halfw;
             boundMaxY = maxY + halfw;
             graph.clear();
-            Calculator.log("graph reset");
+            // Calculator.log("graph reset");
         }
 
         canvas.drawColor(0xff000000);
