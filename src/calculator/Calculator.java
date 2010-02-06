@@ -83,7 +83,11 @@ public class Calculator extends Activity implements TextWatcher,
     }
 
     private void internalConfigChange(Configuration config) {
-        setContentView(R.layout.main);        
+        setContentView(R.layout.main);  
+        graphView = (GraphView) findViewById(R.id.graph);
+        graph3dView = (Graph3dView) findViewById(R.id.graph3d);
+        historyView = (ListView) findViewById(R.id.history);
+              
         final boolean isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE;
         // final boolean hasKeyboard = config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
         
@@ -111,11 +115,8 @@ public class Calculator extends Activity implements TextWatcher,
             input.setText(oldText);
         }
         input.requestFocus();
-        graphView = (GraphView) findViewById(R.id.graph);
         graphView.setOnClickListener(this);
-        graph3dView = (Graph3dView) findViewById(R.id.graph3d);
         graph3dView.setOnClickListener(this);
-        historyView = (ListView) findViewById(R.id.history);
         if (historyView != null) {
             historyView.setAdapter(adapter);
 	    historyView.setOnItemClickListener(this);
@@ -222,8 +223,10 @@ public class Calculator extends Activity implements TextWatcher,
     
     // TextWatcher
     public void afterTextChanged(Editable s) {
-        handler.removeMessages(MSG_INPUT_CHANGED);
-        handler.sendEmptyMessageDelayed(MSG_INPUT_CHANGED, 250);
+        // handler.removeMessages(MSG_INPUT_CHANGED);
+        // handler.sendEmptyMessageDelayed(MSG_INPUT_CHANGED, 250);
+        evaluate();
+        /*
 	if (pendingClearResult && s.length() != 0) {
             if (!(s.length() == 4 && s.toString().startsWith("ans"))) {
                 result.setText(null);
@@ -231,6 +234,7 @@ public class Calculator extends Activity implements TextWatcher,
             showGraph(null);
 	    pendingClearResult = false;
 	}
+        */
     }
     
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -272,7 +276,8 @@ public class Calculator extends Activity implements TextWatcher,
             return false;
         }
     }
-
+    
+    /*
     private Handler handler = new Handler() {
             public void handleMessage(Message msg) {
                 switch (msg.what) {                    
@@ -282,6 +287,7 @@ public class Calculator extends Activity implements TextWatcher,
                 }
             }
         };
+    */
 
     static void log(String mes) {
         if (true) {
@@ -290,36 +296,42 @@ public class Calculator extends Activity implements TextWatcher,
     }
 
     void evaluate() {
-        String text = input.getText().toString();
-        if (text.length() == 0) {
-            return;
-        }
-        String res = evaluate(text);
-        if (res != null) {
-            result.setText(res);
-            result.setEnabled(true);
-        } else {
-            result.setEnabled(false);
-        }
+        evaluate(input.getText().toString());
     }
     
     private String formatEval(Complex value) {
 	if (nDigits == 0) {
             nDigits = getResultSpace();
         }
-	String res = Util.complexToString(value, nDigits, 1);
+	String res = Util.complexToString(value, nDigits, 2);
 	return res.replace(INFINITY, INFINITY_UNICODE);
     }
 
-    private String evaluate(String text) {
+    private void evaluate(String text) {
+        // log("evaluate " + text);
+        if (text.length() == 0) {
+            result.setEnabled(false);
+            return;
+        }
         try {
             Function f = symbols.compile(text);
             int arity = f.arity();
-            showGraph((arity == 1 || arity == 2) ? f : null);
-            return arity==0 ? formatEval(f.evalComplex()) : "function";
+            // Calculator.log("res " + f);
+            if (arity == 1 || arity == 2) {
+                result.setText(null);
+                showGraph(f);
+            } else if (arity == 0) {
+                result.setText(formatEval(f.evalComplex()));
+                result.setEnabled(true);
+                showGraph(null);
+            } else {
+                result.setText("function");
+                result.setEnabled(true);
+                showGraph(null);
+            }
         } catch (SyntaxException e) {
-            showGraph(null);
-            return null;
+            result.setEnabled(false);
+            // showGraph(null);
         }
     }
 
@@ -348,10 +360,6 @@ public class Calculator extends Activity implements TextWatcher,
             oneChar.setCharAt(0, key);
             input.getText().insert(cursor, oneChar);
         }
-    }
-
-    void onEnter() {
-	onEnter(input.getText().toString());
     }
 
     private void showGraph(Function f) {
@@ -396,6 +404,10 @@ public class Calculator extends Activity implements TextWatcher,
         }
     }
 
+    void onEnter() {
+	onEnter(input.getText().toString());
+    }
+
     void onEnter(String text) {
 	boolean historyChanged = false;
 	try {
@@ -421,20 +433,27 @@ public class Calculator extends Activity implements TextWatcher,
         if (historyChanged) {
             adapter.notifyDataSetInvalidated();
         }
+        if (text.length() == 0) {
+            result.setText(null);
+        }
 	changeInput(history.getText());
     }
     
     private void changeInput(String newInput) {
         input.setText(newInput);
 	input.setSelection(newInput.length());
+        /*
 	if (newInput.length() > 0) {
 	    result.setText(null);
 	} else {
 	    pendingClearResult = true;
 	}
+        */
+        /*
         if (result.getText().equals("function")) {
             result.setText(null);
         }
+        */
     }
     
     /*
