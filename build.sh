@@ -7,7 +7,7 @@ KEYSTORE=/home/preda/cheie/and
 KEYALIAS=and
 
 SDK=/home/preda/sdk
-PLATFORM=$SDK/platforms/android-1.6/
+PLATFORM=$SDK/platforms/android-2.1/
 AAPT=$PLATFORM/tools/aapt
 DX=$PLATFORM/tools/dx
 AJAR=$PLATFORM/android.jar

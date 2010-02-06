@@ -2,9 +2,9 @@
 <manifest
    xmlns:android="http://schemas.android.com/apk/res/android"
    package="arity.calculator"
-   android:versionCode="16"
-   android:versionName="1.15">
-  <uses-sdk android:minSdkVersion="4" android:targetSdkVersion="4" />
+   android:versionCode="17"
+   android:versionName="1.17">
+  <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="7" />
   <application android:label="Arity" android:icon="@drawable/icon" >
     <activity android:name="calculator.Calculator"
               android:label="Arity"

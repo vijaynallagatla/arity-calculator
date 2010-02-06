@@ -59,7 +59,7 @@ public class Calculator extends Activity implements TextWatcher,
     static Defs defs;
 
     private static final char[][] ALPHA = {
-        {'q', 'w', PI,  SQRT, '=', ',', '!', '#'},
+        {'q', 'w', PI,  SQRT, '=', ',', '!', '\''},
         {'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
         {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k'},
         {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'l'},
@@ -315,11 +315,10 @@ public class Calculator extends Activity implements TextWatcher,
         try {
             Function f = symbols.compile(text);
             int arity = f.arity();
-            if (arity == 1 || arity == 2) {
-                showGraph(f);
-            }
+            showGraph((arity == 1 || arity == 2) ? f : null);
             return arity==0 ? formatEval(f.evalComplex()) : "function";
         } catch (SyntaxException e) {
+            showGraph(null);
             return null;
         }
     }
