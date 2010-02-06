@@ -129,10 +129,11 @@ public class GraphView extends View implements Grapher {
 
     private float eval(float x) {
         float v = (float) function.eval(x);
-        if (v == NEG_INF) {
+        // Calculator.log("eval " + x + "; " + v); 
+        if (v < -10000f) {
             return -10000f;
         }
-        if (v == POS_INF) {
+        if (v > 10000f) {
             return 10000f;
         }
         return v;
