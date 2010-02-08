@@ -8,6 +8,23 @@ class Data {
     int size = 0;
     int allocSize = 4;
 
+    void swap(Data o) {
+        float savex[] = o.xs;
+        float savey[] = o.ys;
+        int ssize = o.size;
+        int salloc = o.allocSize;
+
+        o.xs = xs;
+        o.ys = ys;
+        o.size = size;
+        o.allocSize = allocSize;
+        
+        xs = savex;
+        ys = savey;
+        size = ssize;
+        allocSize = salloc;
+    }
+
     void push(float x, float y) {
         if (size >= allocSize) {
             makeSpace(size+1);
