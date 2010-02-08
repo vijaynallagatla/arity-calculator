@@ -55,11 +55,12 @@ public class Calculator extends Activity implements TextWatcher,
     private boolean pendingClearResult;
     private boolean isAlphaVisible;
     private KeyboardView alpha, digits;
-    static Function graphedFunction;
+    static ArrayList<Function> graphedFunction;
     static Defs defs;
+    private ArrayList<Function> auxFuncs = new ArrayList<Function>();
 
     private static final char[][] ALPHA = {
-        {'q', 'w', PI,  SQRT, '=', ',', '!', '\''},
+        {'q', 'w', '=', ',', ';', SQRT, '!', '\''},
         {'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
         {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k'},
         {'z', 'x', 'c', 'v', 'b', 'n', 'm', 'l'},
@@ -76,6 +77,16 @@ public class Calculator extends Activity implements TextWatcher,
         {'0', '.', '+', MINUS, TIMES, DIV, '^', '(', ')', 'C'},        
         {'1', '2', '3', '4', '5', '6', '7', '8', '9', 'E'},
     };
+
+    /*
+    private static final char[][] DIGITS3 = {
+        {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
+        {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', PI},
+        {'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '=', '%'},
+        {'0', '.', '+', MINUS, TIMES, DIV, '^', '(', ')', 'C'},        
+        {'1', '2', '3', '4', '5', '6', '7', '8', '9', 'E'},
+    };
+    */
 
     public void onConfigurationChanged(Configuration config) {
         super.onConfigurationChanged(config);
@@ -313,8 +324,28 @@ public class Calculator extends Activity implements TextWatcher,
             result.setEnabled(false);
             return;
         }
-        try {
-            Function f = symbols.compile(text);
+
+        auxFuncs.clear();
+        int end = -1;
+        do {
+            text = text.substring(end+1);
+            end  = text.indexOf(';');
+            String slice = end == -1 ? text : text.substring(0, end);
+            try {
+                Function f = symbols.compile(slice);
+                auxFuncs.add(f);
+            } catch (SyntaxException e) {
+                continue;
+            }
+        } while (end != -1);
+        
+        graphedFunction = auxFuncs;
+        int size = auxFuncs.size();
+        if (size == 0) {
+            result.setEnabled(false);
+            return;
+        } else if (size == 1) {
+            Function f = auxFuncs.get(0);
             int arity = f.arity();
             // Calculator.log("res " + f);
             if (arity == 1 || arity == 2) {
@@ -329,9 +360,19 @@ public class Calculator extends Activity implements TextWatcher,
                 result.setEnabled(true);
                 showGraph(null);
             }
-        } catch (SyntaxException e) {
-            result.setEnabled(false);
-            // showGraph(null);
+        } else {
+            graphView.setFunctions(auxFuncs);
+            if (graphView.getVisibility() != View.VISIBLE) {
+                if (isAlphaVisible) {
+                    isAlphaVisible = false;
+                    updateAlpha();
+                }
+                result.setVisibility(View.GONE);
+                historyView.setVisibility(View.GONE);
+                graph3dView.setVisibility(View.GONE);
+                graph3dView.onPause();
+                graphView.setVisibility(View.VISIBLE);                
+            }
         }
     }
 
@@ -363,7 +404,6 @@ public class Calculator extends Activity implements TextWatcher,
     }
 
     private void showGraph(Function f) {
-        boolean graphIsVisible = graphView.getVisibility() == View.VISIBLE;
         if (f == null) {
             if (historyView.getVisibility() != View.VISIBLE) {
                 graphView.setVisibility(View.GONE);
@@ -373,7 +413,7 @@ public class Calculator extends Activity implements TextWatcher,
                 result.setVisibility(View.VISIBLE);
             }
         } else {
-            graphedFunction = f;
+            // graphedFunction = f;
             if (f.arity() == 1) {
                 graphView.setFunction(f);
                 if (graphView.getVisibility() != View.VISIBLE) {

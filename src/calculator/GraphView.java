@@ -35,12 +35,16 @@ import arity.calculator.R;
 
 import org.javia.arity.*;
 
+import java.util.ArrayList;
+
 public class GraphView extends View implements Grapher {
     private int width, height;
     private Matrix matrix = new Matrix();
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
-    private Function function;
-    private Data next = new Data(), graph = new Data(), endGraph = new Data();
+    private ArrayList<Function> funcs = new ArrayList<Function>();
+    private Data next = new Data(), endGraph = new Data();
+    private Data graphs[] = {new Data(), new Data(), new Data(), new Data(), new Data()};
+    private static final int GRAPHS_SIZE = 5;
     private float gwidth = 8;
     private float currentX, currentY;
     private float lastMinX;
@@ -49,7 +53,7 @@ public class GraphView extends View implements Grapher {
     private Scroller scroller;
     private boolean active;
     private float lastTouchX, lastTouchY;
-    private float points[];
+    // private float points[];
     private float boundMinY, boundMaxY;
 
     /*
@@ -63,8 +67,9 @@ public class GraphView extends View implements Grapher {
     private static final int
         COL_AXIS = 0xff00a000,
         COL_GRID = 0xff004000,
-        COL_TEXT = 0xff00ff00,
-        COL_GRAPH = 0xffffffff;
+        COL_TEXT = 0xff00ff00;
+
+    private static final int COL_GRAPH[] = {0xffffffff, 0xff00ffff, 0xffffff00, 0xffff00ff, 0xff80ff80};
 
     private static final int
         COL_ZOOM = 0x40ffffff,
@@ -89,9 +94,30 @@ public class GraphView extends View implements Grapher {
         textPaint.setAntiAlias(true);
     }
 
+    private void clearAllGraph() {
+        for (int i = 0; i < GRAPHS_SIZE; ++i) {
+            graphs[i].clear();
+        }
+    }
+
+    public void setFunctions(ArrayList<Function> fs) {
+        funcs.clear();
+        for (Function f : fs) {
+            int arity = f.arity();
+            if (arity == 0 || arity == 1) {
+                funcs.add(f);
+            }
+        }
+        clearAllGraph();
+        invalidate();
+    }
+    
     public void setFunction(Function f) {
-        this.function = f;
-        graph.clear();
+        funcs.clear();
+        if (f != null) {
+            funcs.add(f);
+        }
+        clearAllGraph();
         invalidate();
     }
 
@@ -104,12 +130,12 @@ public class GraphView extends View implements Grapher {
     protected void onSizeChanged(int w, int h, int ow, int oh) {
         width = w;
         height = h;
-        graph.clear();
-        points = new float[w+w];
+        clearAllGraph();
+        // points = new float[w+w];
     }
 
     protected void onDraw(Canvas canvas) {
-        if (function == null) {
+        if (funcs.size() == 0) {
             return;
         }
         if (scroller.computeScrollOffset()) {
@@ -123,12 +149,8 @@ public class GraphView extends View implements Grapher {
         drawGraph(canvas);
     }
 
-    private static final float 
-        NEG_INF = Float.NEGATIVE_INFINITY, 
-        POS_INF = Float.POSITIVE_INFINITY;
-
-    private float eval(float x) {
-        float v = (float) function.eval(x);
+    private float eval(Function f, float x) {
+        float v = (float) f.eval(x);
         // Calculator.log("eval " + x + "; " + v); 
         if (v < -10000f) {
             return -10000f;
@@ -138,18 +160,6 @@ public class GraphView extends View implements Grapher {
         }
         return v;
     }
-
-    /*
-    private void computeGraph2(float minX) {
-        float step = gwidth / width;
-        int end = width + width;
-        float x = minX;
-        for (int i = 0; i < end; x += step, i+=2) {
-            points[i] = x;
-            points[i+1] = (float) function.eval(x);
-        }
-    }
-    */
 
     // distance from (x,y) to the line (x1,y1) to (x2,y2), squared, multiplied by 4
     /*
@@ -171,30 +181,36 @@ public class GraphView extends View implements Grapher {
         return up*up/(dx*dx + dy*dy);
     }
 
-    private Data computeGraph(float minX, float maxX, float minY, float maxY) {
-        long t1 = System.currentTimeMillis();
+    private void computeGraph(Function f, float minX, float maxX, float minY, float maxY, Data graph) {
+        if (f.arity() == 0) {
+            float v = (float) f.eval();
+            if (v < -10000f) { v = -10000f; }
+            if (v > 10000f) { v = 10000f; }
+            graph.clear();
+            graph.push(minX, v);
+            graph.push(maxX, v);
+            return;
+        }
+
         final float scale = width / gwidth;
         final float maxStep = 15.8976f / scale;
         final float minStep = .05f / scale;
         float ythresh = 1/scale;
         ythresh = ythresh * ythresh;
-        next.clear();
-        endGraph.clear();
+        // next.clear();
+        // endGraph.clear();
         if (!graph.empty()) {
             // Calculator.log("last " + lastMinX + " min " + minX);
             if (minX >= lastMinX) {
                 graph.eraseBefore(minX);
             } else {
                 graph.eraseAfter(maxX);
-                maxX = graph.firstX();
-                Data save = endGraph;
-                endGraph = graph;
-                graph = save;
+                maxX = Math.min(maxX, graph.firstX());
+                graph.swap(endGraph);
             }
         }
-        lastMinX = minX;
         if (graph.empty()) {
-            graph.push(minX, eval(minX));
+            graph.push(minX, eval(f, minX));
         }
         float leftX, leftY;
         float rightX = graph.topX(), rightY = graph.topY();
@@ -207,7 +223,7 @@ public class GraphView extends View implements Grapher {
             }
             if (next.empty()) {
                 float x = leftX + maxStep;
-                next.push(x, eval(x));
+                next.push(x, eval(f, x));
                 ++nEval;
             }
             rightX = next.topX();
@@ -236,7 +252,7 @@ public class GraphView extends View implements Grapher {
 
             float dx = rightX - leftX;
             float middleX = (leftX + rightX) / 2;
-            float middleY = eval(middleX);
+            float middleY = eval(f, middleX);
             ++nEval;
             boolean middleIsOutside = (middleY < leftY && middleY < rightY) || (leftY < middleY && rightY < middleY);
             if (dx < minStep) {
@@ -277,7 +293,9 @@ public class GraphView extends View implements Grapher {
         }
         long t2 = System.currentTimeMillis();
         // Calculator.log("graph points " + graph.size + " evals " + nEval + " time " + (t2-t1));
-        return graph;
+        
+        next.clear();
+        endGraph.clear();
     }
     
     private static Path path = new Path();
@@ -370,8 +388,7 @@ public class GraphView extends View implements Grapher {
             float halfw = ywidth/2;
             boundMinY = minY - halfw;
             boundMaxY = maxY + halfw;
-            graph.clear();
-            // Calculator.log("graph reset");
+            clearAllGraph();
         }
 
         canvas.drawColor(0xff000000);
@@ -433,30 +450,24 @@ public class GraphView extends View implements Grapher {
             canvas.drawLine(x0, 0, x0, height, paint);
         }
         canvas.drawLine(0, y0, width, y0, paint);
-        long t3 = System.currentTimeMillis();
         
         matrix.reset();
         matrix.preTranslate(-currentX, -currentY);
         matrix.postScale(scale, -scale);
         matrix.postTranslate(width/2, height/2);
 
-        paint.setColor(COL_GRAPH);
         paint.setStrokeWidth(0);
         paint.setAntiAlias(false);
 
-        Data graph = computeGraph(minX, maxX, boundMinY, boundMaxY);
-        Path path = graphToPath(graph);
-        long t5 = System.currentTimeMillis();
-        path.transform(matrix);
-        long t4 = System.currentTimeMillis();
-        canvas.drawPath(path, paint);
-
-        /*
-        computeGraph2(minX);
-        matrix.mapPoints(points);
-        paint.setAntiAlias(false);
-        canvas.drawPoints(points, paint);
-        */
+        int n = Math.min(funcs.size(), GRAPHS_SIZE);
+        for (int i = 0; i < n; ++i) {
+            computeGraph(funcs.get(i), minX, maxX, boundMinY, boundMaxY, graphs[i]);
+            Path path = graphToPath(graphs[i]);
+            path.transform(matrix);
+            paint.setColor(COL_GRAPH[i]);
+            canvas.drawPath(path, paint);
+        }
+        lastMinX = minX;
         
         if (isFullScreen) {
             fillPaint.setColor(COL_ZOOM);
@@ -470,8 +481,6 @@ public class GraphView extends View implements Grapher {
             textPaint.setColor(canZoomIn() ? COL_ZOOM_TEXT1 : COL_ZOOM_TEXT2);
             canvas.drawText("+", width-55, height-22, textPaint);
         }
-        long t2 = System.currentTimeMillis();
-        // Calculator.log("total draw time " + (t2 - t1) + ' ' + (t3-t1) + ' ' + (t5 - t3) + ' ' + (t4 - t5) + ' ' + (t2-t4));
     }
 
     private boolean canZoomIn() {
@@ -486,7 +495,7 @@ public class GraphView extends View implements Grapher {
         if (canZoomOut()) {
             gwidth *= 2;
             invalidate();
-            graph.clear();
+            clearAllGraph();
             boundMinY = boundMaxY = 0;
         }
     }
@@ -495,7 +504,7 @@ public class GraphView extends View implements Grapher {
         if (canZoomIn()) {
             gwidth /= 2;
             invalidate();
-            graph.clear();
+            clearAllGraph();
             boundMinY = boundMaxY = 0;
         }
     }

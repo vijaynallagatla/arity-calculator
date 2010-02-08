@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.opengl.GLSurfaceView;
 import org.javia.arity.Function;
+import java.util.ArrayList;
 
 public class ShowGraph extends Activity {
     private Grapher view;
@@ -15,24 +16,16 @@ public class ShowGraph extends Activity {
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        Function f = Calculator.graphedFunction;
-        int arity = f.arity();
-        /*
-        if (arity == 1) {
-            graphView = new GraphView(this);
-            graphView.setFunction(f);
-            setContentView(graphView);
+        ArrayList<Function> funcs = Calculator.graphedFunction;
+        int size = funcs.size();
+        if (size == 1) {
+            Function f = funcs.get(0);
+            view = f.arity() == 1 ? new GraphView(this) : new Graph3dView(this);
+            view.setFunction(f);
         } else {
-            surfaceView = new GLSurfaceView(this);
-            GraphRenderer renderer = new GraphRenderer();
-            renderer.setFunction(f);
-            surfaceView.setRenderer(renderer);
-            surfaceView.setDebugFlags(GLSurfaceView.DEBUG_CHECK_GL_ERROR);
-            setContentView(surfaceView);
+            view = new GraphView(this);
+            ((GraphView) view).setFunctions(funcs);
         }
-        */
-        view = arity == 1 ? new GraphView(this) : new Graph3dView(this);
-        view.setFunction(f);
         setContentView((View) view);
     }
 
