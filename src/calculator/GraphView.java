@@ -49,20 +49,13 @@ public class GraphView extends View implements Grapher {
     private float currentX, currentY;
     private float lastMinX;
     private boolean isFullScreen;
-    private VelocityTracker velocityTracker;
+    private VelocityTracker velocityTracker = VelocityTracker.obtain();
     private Scroller scroller;
-    private boolean active;
+    private boolean ignoreTouch = false;
     private float lastTouchX, lastTouchY;
-    // private float points[];
     private float boundMinY, boundMaxY;
-
-    /*
-    private static final int
-        COL_AXIS = 0xffa0a0a0,
-        COL_GRID = 0xff202020,
-        COL_TEXT = 0xffffffff,
-        COL_GRAPH = 0xff00ff00;
-    */
+    private boolean isAfterZoom;
+    private ZoomTracker zoomTracker = new ZoomTracker();
 
     private static final int
         COL_AXIS = 0xff00a000,
@@ -233,22 +226,6 @@ public class GraphView extends View implements Grapher {
             if (leftY != leftY && rightY != rightY) { // NaN
                 continue;
             }
-
-            /*
-            if (!next.empty()) {
-                float ox = next.topX();
-                float oy = next.topY();
-                if ((!((oy < leftY && oy < rightY) || (oy > leftY && oy > rightY))) &&
-                    distance(leftX, leftY, rightX, rightY, ox, oy) < ythresh) {
-                    next.pop();
-                    graph.push(ox, oy);
-                    rightX = ox;
-                    rightY = oy;
-                    Calculator.log("shortcut");
-                    continue;
-                }
-            }
-            */
 
             float dx = rightX - leftX;
             float middleX = (leftX + rightX) / 2;
@@ -491,101 +468,154 @@ public class GraphView extends View implements Grapher {
         return gwidth < 50;
     }
 
+    private void invalidateGraphs() {
+        clearAllGraph();
+        boundMinY = boundMaxY = 0;
+        invalidate();
+    }
+
     private void zoomOut() {
         if (canZoomOut()) {
             gwidth *= 2;
-            invalidate();
-            clearAllGraph();
-            boundMinY = boundMaxY = 0;
+            invalidateGraphs();
         }
     }
 
     private void zoomIn() {
         if (canZoomIn()) {
             gwidth /= 2;
-            invalidate();
-            clearAllGraph();
-            boundMinY = boundMaxY = 0;
+            invalidateGraphs();
         }
     }
 
+    private void onTouchDown(float x, float y, MotionEvent event) {
+        if (!scroller.isFinished()) {
+            scroller.abortAnimation();
+        }
+        velocityTracker.clear();
+        velocityTracker.addMovement(event);
+        lastTouchX = x;
+        lastTouchY = y;
+    }
+
+    private void onTouchMove(float x, float y, MotionEvent event) {
+        velocityTracker.addMovement(event);
+        float deltaX = x - lastTouchX;
+        float deltaY = y - lastTouchY;
+        if (deltaX < -1 || deltaX > 1 || deltaY < -1 || deltaY > 1) {
+            scroll(-deltaX, deltaY);
+            lastTouchX = x;
+            lastTouchY = y;
+            invalidate();
+        }
+    }
+
+    private void onTouchUp(float x, float y, MotionEvent event) {
+        velocityTracker.addMovement(event);
+        velocityTracker.computeCurrentVelocity(1000);
+        final float scale = width / gwidth;
+        float sx = -velocityTracker.getXVelocity();
+        float sy = velocityTracker.getYVelocity();
+        final float asx = Math.abs(sx);
+        final float asy = Math.abs(sy);
+        if (asx < asy / 3) {
+            sx = 0;
+        } else if (asy < asx / 3) {
+            sy = 0;
+        }
+        scroller.fling(Math.round(currentX * scale),
+                       Math.round(currentY * scale),
+                       Math.round(sx), Math.round(sy), -10000, 10000, -10000, 10000);
+        invalidate();
+    }
+
+    private void onTouchZoomDown(float x1, float y1, float x2, float y2) {
+        zoomTracker.start(gwidth, x1, y1, x2, y2);
+    }
+
+    private void onTouchZoomMove(float x1, float y1, float x2, float y2) {
+        if (!zoomTracker.update(x1, y1, x2, y2)) {
+            return;
+        }
+        float targetGwidth = zoomTracker.value;
+        if (targetGwidth > .25f && targetGwidth < 200) {
+            gwidth = targetGwidth;
+        }
+        // scroll(-zoomTracker.moveX, zoomTracker.moveY);
+        invalidateGraphs();
+        // Calculator.log("zoom redraw");
+    }
+
+    private void onTouchZoomUp() {
+        // Calculator.log("zoom ended");
+    }
+    
     public boolean onTouchEvent(MotionEvent event) {
+        // Calculator.log("touch " + event + ' ' + event.getPointerCount() + event.getPointerId(0));
         if (!isFullScreen) {
             return super.onTouchEvent(event);
         }
 
-        int action = event.getAction();
+        int fullAction = event.getAction();
+        int action  = fullAction & MotionEvent.ACTION_MASK;
+        int pointer = (fullAction & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
         float x = event.getX();
         float y = event.getY();
-        if (!active && action != MotionEvent.ACTION_DOWN) {
-            return true;
-        }        
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-            if (!scroller.isFinished()) {
-                scroller.abortAnimation();
+        int nPoints = event.getPointerCount();
+        if (ignoreTouch) {
+            if (action == MotionEvent.ACTION_UP) {
+                ignoreTouch = false;
             }
-            active = false;
+            return true;
+        }
+
+        switch (action) {
+        case MotionEvent.ACTION_DOWN:
             if (y > height-60) {
                 if (x > width - 140 && x < width-80) {
+                    ignoreTouch = true;
                     zoomOut();
                     return true;
                 } else if (x > width-80 && x < width-20) {
+                    ignoreTouch = true;
                     zoomIn();
                     return true;
                 }
             }
-            active = true;
-            if (velocityTracker == null) {
-                velocityTracker = VelocityTracker.obtain();
-            }
-            velocityTracker.addMovement(event);
-            lastTouchX = x;
-            lastTouchY = y;
+            isAfterZoom = false;
+            onTouchDown(x, y, event);
             break;
 
         case MotionEvent.ACTION_MOVE:
-            if (velocityTracker == null) {
-                velocityTracker = VelocityTracker.obtain();
-            }
-            velocityTracker.addMovement(event);
-            float deltaX = x - lastTouchX;
-            float deltaY = y - lastTouchY;
-            if (deltaX < -1 || deltaX > 1 || deltaY < -1 || deltaY > 1) {
-                scroll(-deltaX, deltaY);
-                lastTouchX = x;
-                lastTouchY = y;
-                invalidate();
+            if (nPoints == 1) {
+                if (isAfterZoom) {
+                    velocityTracker.clear();
+                    lastTouchX = x;
+                    lastTouchY = y;
+                    isAfterZoom = false;
+                }
+                onTouchMove(x, y, event);
+            } else if (nPoints == 2) {
+                onTouchZoomMove(x, y, event.getX(1), event.getY(1));
             }
             break;
 
         case MotionEvent.ACTION_UP:
-            velocityTracker.computeCurrentVelocity(1000);
-            final float scale = width / gwidth;
-            float sx = -velocityTracker.getXVelocity();
-            float sy = velocityTracker.getYVelocity();
-            final float asx = Math.abs(sx);
-            final float asy = Math.abs(sy);
-            if (asx < asy / 3) {
-                sx = 0;
-            } else if (asy < asx / 3) {
-                sy = 0;
-            }
-            scroller.fling(Math.round(currentX * scale),
-                           Math.round(currentY * scale),
-                           Math.round(sx), Math.round(sy), -10000, 10000, -10000, 10000);
-            invalidate();
-            // no break
+            onTouchUp(x, y, event);
+            break;
 
-        case MotionEvent.ACTION_CANCEL:
-            if (velocityTracker != null) {
-                velocityTracker.recycle();
-                velocityTracker = null;
+        case MotionEvent.ACTION_POINTER_DOWN:
+            if (nPoints == 2) {
+                onTouchZoomDown(x, y, event.getX(1), event.getY(1));
             }
             break;
-            
-        default: 
-            // ignore
+
+        case MotionEvent.ACTION_POINTER_UP:
+            if (nPoints == 2) {
+                onTouchZoomUp();
+                isAfterZoom = true;
+            }
+            break;
         }
         return true;
     }
@@ -603,6 +633,5 @@ public class GraphView extends View implements Grapher {
         }
         currentX += dx;
         currentY += dy;
-        invalidate();
     }
 }
