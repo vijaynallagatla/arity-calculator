@@ -9,6 +9,7 @@ import android.view.VelocityTracker;
 import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.Scroller;
+import android.widget.ZoomButtonsController;
 
 import android.content.Context;
 import android.text.Editable;
@@ -27,6 +28,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.Build;
 
 import android.util.AttributeSet;
 
@@ -37,7 +39,7 @@ import org.javia.arity.*;
 
 import java.util.ArrayList;
 
-public class GraphView extends View implements Grapher {
+public class GraphView extends View implements Grapher, ZoomButtonsController.OnZoomListener {
     private int width, height;
     private Matrix matrix = new Matrix();
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
@@ -51,11 +53,11 @@ public class GraphView extends View implements Grapher {
     private boolean isFullScreen;
     private VelocityTracker velocityTracker = VelocityTracker.obtain();
     private Scroller scroller;
-    private boolean ignoreTouch = false;
     private float lastTouchX, lastTouchY;
     private float boundMinY, boundMaxY;
     private boolean isAfterZoom;
     private ZoomTracker zoomTracker = new ZoomTracker();
+    private ZoomButtonsController zoomController = new ZoomButtonsController(this);
 
     private static final int
         COL_AXIS = 0xff00a000,
@@ -85,6 +87,7 @@ public class GraphView extends View implements Grapher {
         scroller = new Scroller(context);
         paint.setAntiAlias(false);
         textPaint.setAntiAlias(true);
+        zoomController.setOnZoomListener(this);
     }
 
     private void clearAllGraph() {
@@ -114,10 +117,34 @@ public class GraphView extends View implements Grapher {
         invalidate();
     }
 
-    public void onPause() {
+    public void onVisibilityChanged(boolean visible) {
+    }
+    
+    public void onZoom(boolean zoomIn) {
+        if (zoomIn) {
+            if (canZoomIn()) {
+                gwidth /= 2;
+                invalidateGraphs();
+            }
+        } else {
+            if (canZoomOut()) {
+                gwidth *= 2;
+                invalidateGraphs();
+            }
+        }
+        zoomController.setZoomInEnabled(canZoomIn());
+        zoomController.setZoomOutEnabled(canZoomOut());
     }
 
     public void onResume() {
+    }
+
+    public void onPause() {
+    }
+
+    public void onDetachedFromWindow() {
+        zoomController.setVisible(false);
+        super.onDetachedFromWindow();
     }
 
     protected void onSizeChanged(int w, int h, int ow, int oh) {
@@ -444,20 +471,7 @@ public class GraphView extends View implements Grapher {
             paint.setColor(COL_GRAPH[i]);
             canvas.drawPath(path, paint);
         }
-        lastMinX = minX;
-        
-        if (isFullScreen) {
-            fillPaint.setColor(COL_ZOOM);
-            canvas.drawRect(width-130, height-55, width-30, height-10, fillPaint);
-            textPaint.setTextSize(22);
-            textPaint.setTextAlign(Paint.Align.CENTER);
-            
-            textPaint.setColor(canZoomOut() ? COL_ZOOM_TEXT1 : COL_ZOOM_TEXT2);
-            canvas.drawText("\u2212", width-105, height-22, textPaint);
-            
-            textPaint.setColor(canZoomIn() ? COL_ZOOM_TEXT1 : COL_ZOOM_TEXT2);
-            canvas.drawText("+", width-55, height-22, textPaint);
-        }
+        lastMinX = minX;        
     }
 
     private boolean canZoomIn() {
@@ -472,20 +486,6 @@ public class GraphView extends View implements Grapher {
         clearAllGraph();
         boundMinY = boundMaxY = 0;
         invalidate();
-    }
-
-    private void zoomOut() {
-        if (canZoomOut()) {
-            gwidth *= 2;
-            invalidateGraphs();
-        }
-    }
-
-    private void zoomIn() {
-        if (canZoomIn()) {
-            gwidth /= 2;
-            invalidateGraphs();
-        }
     }
 
     private void onTouchDown(float x, float y, MotionEvent event) {
@@ -562,25 +562,11 @@ public class GraphView extends View implements Grapher {
         float x = event.getX();
         float y = event.getY();
         int nPoints = event.getPointerCount();
-        if (ignoreTouch) {
-            if (action == MotionEvent.ACTION_UP) {
-                ignoreTouch = false;
-            }
-            return true;
-        }
 
         switch (action) {
         case MotionEvent.ACTION_DOWN:
-            if (y > height-60) {
-                if (x > width - 140 && x < width-80) {
-                    ignoreTouch = true;
-                    zoomOut();
-                    return true;
-                } else if (x > width-80 && x < width-20) {
-                    ignoreTouch = true;
-                    zoomIn();
-                    return true;
-                }
+            if (isFullScreen) {
+                zoomController.setVisible(true);
             }
             isAfterZoom = false;
             onTouchDown(x, y, event);
