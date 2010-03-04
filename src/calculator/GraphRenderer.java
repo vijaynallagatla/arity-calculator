@@ -16,6 +16,7 @@ class GraphRenderer implements Renderer {
     private long lastTime;
     private boolean isDirty;
     private Function function;
+    private float zoomLevel = 4;
     
     GraphRenderer() {
         Matrix.setIdentityM(matrix1, 0);
@@ -29,6 +30,16 @@ class GraphRenderer implements Renderer {
 
     public void setFunction(Function f) {
         function = f;
+        zoomLevel = 4;
+        isDirty = true;
+    }
+
+    public void onZoom(boolean zoomIn) {
+        if (zoomIn) {
+            zoomLevel = zoomLevel / 2;
+        } else {
+            zoomLevel = zoomLevel + zoomLevel;
+        }
         isDirty = true;
     }
 
@@ -38,7 +49,8 @@ class GraphRenderer implements Renderer {
         gl.glClearColor(0, 0, 0, 1);
         gl.glShadeModel(GL10.GL_SMOOTH);
         gl.glDisable(GL10.GL_LIGHTING);
-        Graph3d.instance.init(gl, function);
+        Graph3d.instance.init(gl);
+        Graph3d.instance.update((GL11) gl, function, zoomLevel);
         isDirty = false;
         angleX = .5f;
         angleY = 0;
@@ -60,7 +72,7 @@ class GraphRenderer implements Renderer {
     public void onDrawFrame(GL10 gl10) {
         GL11 gl = (GL11) gl10;
         if (isDirty) {
-            Graph3d.instance.update(gl, function);
+            Graph3d.instance.update(gl, function, zoomLevel);
             isDirty = false;
         }
         if (--drawCnt <= 0) {

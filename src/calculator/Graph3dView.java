@@ -5,6 +5,7 @@ package calculator;
 import android.content.Context;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
+import android.widget.ZoomButtonsController;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
@@ -17,6 +18,7 @@ public class Graph3dView extends GLView implements Grapher {
     private boolean isRotating = true;
     private boolean isFullScreen;
     private GraphRenderer renderer = new GraphRenderer();
+    private ZoomButtonsController zoomController = new ZoomButtonsController(this);
 
     private Handler handler = new Handler() {
             public void handleMessage(Message msg) {
@@ -39,6 +41,7 @@ public class Graph3dView extends GLView implements Grapher {
     private void init() {
         setRenderer(renderer);
         isRotating = true;
+        zoomController.setOnZoomListener(this);
     }
 
     public void setFunction(Function f) {
@@ -58,6 +61,18 @@ public class Graph3dView extends GLView implements Grapher {
         }
     }
 
+    public void onVisibilityChanged(boolean visible) {
+    }
+
+    public void onZoom(boolean zoomIn) {
+        renderer.onZoom(zoomIn);
+    }
+
+    public void onDetachedFormWindow() {
+        zoomController.setVisible(false);
+        super.onDetachedFromWindow();
+    }
+
     public boolean onTouchEvent(MotionEvent event) {
         // Calculator.log("touch " + event);
         if (!isFullScreen) {
@@ -70,6 +85,8 @@ public class Graph3dView extends GLView implements Grapher {
         float y = event.getY();
         switch (action) {
         case MotionEvent.ACTION_DOWN:
+            zoomController.setVisible(true);
+
             isRotating = false;
             if (velocityTracker == null) {
                 velocityTracker = VelocityTracker.obtain();

@@ -3,8 +3,9 @@
 package calculator;
 
 import org.javia.arity.Function;
+import android.widget.ZoomButtonsController;
 
-interface Grapher {
+interface Grapher extends ZoomButtonsController.OnZoomListener {
     public void setFunction(Function f);
     public void onPause();
     public void onResume();    
