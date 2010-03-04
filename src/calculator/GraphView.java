@@ -39,7 +39,7 @@ import org.javia.arity.*;
 
 import java.util.ArrayList;
 
-public class GraphView extends View implements Grapher, ZoomButtonsController.OnZoomListener {
+public class GraphView extends View implements Grapher {
     private int width, height;
     private Matrix matrix = new Matrix();
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();

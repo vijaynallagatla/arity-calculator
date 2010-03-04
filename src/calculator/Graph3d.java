@@ -17,7 +17,7 @@ class Graph3d {
     static Graph3d instance = new Graph3d();
 
     private static final int N = 24;
-    private float minX = -4, maxX = 4, minY = -4, maxY = 4; 
+    // private float minX = -4, maxX = 4, minY = -4, maxY = 4; 
 
     private ShortBuffer verticeIdx;
     private FloatBuffer vertexBuf, colorBuf;
@@ -61,7 +61,7 @@ class Graph3d {
         return sb;
     }
 
-    public void init(GL10 gl10, Function f) {
+    public void init(GL10 gl10) {
         GL11 gl = (GL11) gl10;
         String extensions = gl.glGetString(GL10.GL_EXTENSIONS);
         useVBO = extensions.indexOf("vertex_buffer_object") != -1;
@@ -74,10 +74,11 @@ class Graph3d {
             colorVbo  = out[1];
             vertexElementVbo = out[2];
         }
-        update(gl, f);
     }
 
-    public void update(GL11 gl, Function f) {
+    public void update(GL11 gl, Function f, float size) {
+        final float minX = -size, maxX = size, minY = -size, maxY = size;
+
         Calculator.log("update VBOs " + vertexVbo + ' ' + colorVbo + ' ' + vertexElementVbo);
         int nVertex = N*N+6+8;
         int nFloats = nVertex * 3;
