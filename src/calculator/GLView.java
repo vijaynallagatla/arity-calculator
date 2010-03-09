@@ -17,6 +17,8 @@ import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.opengl.GLSurfaceView.Renderer;
+import android.os.Handler;
+import android.os.Message;
 
 abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private boolean hasSurface;
@@ -28,8 +30,14 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private EGLContext eglContext;
     private GL11 gl;
     private int width, height;
-    private boolean sizeChangePending;
     private Renderer renderer;
+    private boolean mIsLooping;
+
+    private Handler handler = new Handler() {
+            public void handleMessage(Message msg) {
+                myDraw();
+            }
+        };
 
     public void setRenderer(Renderer renderer) {
         this.renderer = renderer;
@@ -81,7 +89,7 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         gl = (GL11) eglContext.getGL();
         renderer.onSurfaceCreated(gl, null);
         renderer.onSurfaceChanged(gl, width, height);
-        myDraw();
+        requestDraw();
     }
 
     private void deinitGL() {
@@ -113,6 +121,9 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
                 Calculator.log("egl context lost " + this);
                 paused = true;
             }
+            if (mIsLooping) {
+                requestDraw();
+            }
         }
     }
 
@@ -124,11 +135,10 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         Calculator.log("surfaceChanged " + format + ' ' + this);
         this.width  = width;
         this.height = height;
-        if (!hasSurface && !paused) {
-            hasSurface = true;
+        boolean doInit = !hasSurface && !paused;
+        hasSurface = true;
+        if (doInit) {
             initGL();
-        } else {
-            hasSurface = true;
         }
     }
 
@@ -136,5 +146,28 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         Calculator.log("surfaceDestroyed " + this);
         hasSurface = false;
         deinitGL();
+    }
+
+    public void startLooping() {
+        if (!mIsLooping) {
+            Calculator.log("start looping");
+            mIsLooping = true;
+            myDraw();
+        }
+    }
+
+    public void stopLooping() {
+        if (mIsLooping) {
+            Calculator.log("stop looping");
+            mIsLooping = false;
+        }
+    }
+
+    public boolean isLooping() {
+        return mIsLooping;
+    }
+
+    public void requestDraw() {
+        handler.sendEmptyMessage(1);
     }
 }
