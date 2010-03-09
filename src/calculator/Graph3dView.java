@@ -6,8 +6,6 @@ import android.content.Context;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.widget.ZoomButtonsController;
-import android.os.Handler;
-import android.os.Message;
 import android.util.AttributeSet;
 import android.opengl.GLSurfaceView.Renderer;
 import org.javia.arity.Function;
@@ -15,16 +13,9 @@ import org.javia.arity.Function;
 public class Graph3dView extends GLView implements Grapher {
     private float lastTouchX, lastTouchY;
     private VelocityTracker velocityTracker;
-    private boolean isRotating = true;
     private boolean isFullScreen;
     private GraphRenderer renderer = new GraphRenderer();
     private ZoomButtonsController zoomController = new ZoomButtonsController(this);
-
-    private Handler handler = new Handler() {
-            public void handleMessage(Message msg) {
-                myDraw();
-            }
-        };
 
     public Graph3dView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -40,7 +31,7 @@ public class Graph3dView extends GLView implements Grapher {
 
     private void init() {
         setRenderer(renderer);
-        isRotating = true;
+        startLooping();
         zoomController.setOnZoomListener(this);
     }
 
@@ -48,27 +39,18 @@ public class Graph3dView extends GLView implements Grapher {
         renderer.setFunction(f);
     }
 
-    private void requestDraw() {
-        if (!handler.hasMessages(1)) {
-            handler.sendEmptyMessage(1);
-        }
-    }
-
-    protected void myDraw() {
-        super.myDraw();
-        if (isRotating) {
-            requestDraw();
-        }
-    }
-
     public void onVisibilityChanged(boolean visible) {
     }
 
     public void onZoom(boolean zoomIn) {
         renderer.onZoom(zoomIn);
+        if (!isLooping()) {
+            requestDraw();
+        }
     }
 
-    public void onDetachedFormWindow() {
+    @Override
+    public void onDetachedFromWindow() {
         zoomController.setVisible(false);
         super.onDetachedFromWindow();
     }
@@ -76,7 +58,6 @@ public class Graph3dView extends GLView implements Grapher {
     public boolean onTouchEvent(MotionEvent event) {
         // Calculator.log("touch " + event);
         if (!isFullScreen) {
-            // isRotating = false;
             return super.onTouchEvent(event);
         }
 
@@ -86,8 +67,7 @@ public class Graph3dView extends GLView implements Grapher {
         switch (action) {
         case MotionEvent.ACTION_DOWN:
             zoomController.setVisible(true);
-
-            isRotating = false;
+            stopLooping();
             if (velocityTracker == null) {
                 velocityTracker = VelocityTracker.obtain();
             }
@@ -116,11 +96,10 @@ public class Graph3dView extends GLView implements Grapher {
             float vx = velocityTracker.getXVelocity();
             float vy = velocityTracker.getYVelocity();
             // Calculator.log("velocity " + vx + ' ' + vy);
-            final float limit = 50;
-            isRotating = vx < -limit || vx > limit || vy < -limit || vy > limit;
             renderer.setRotation(vx/100, vy/100);
-            if (isRotating) {
-                requestDraw();
+            final float limit = 50;
+            if (vx < -limit || vx > limit || vy < -limit || vy > limit) {
+                startLooping();
             }
             // no break
 
