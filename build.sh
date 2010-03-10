@@ -36,7 +36,7 @@ echo apkbuilder
 apkbuilder $OUT -u -z $PKRES -f bin/classes.dex
 
 echo jarsigner
-jarsigner -keystore $KEYSTORE -storepass 000000 $OUT $KEYALIAS || jarsigner -keystore $KEYSTORE $OUT $KEYALIAS
+jarsigner -keystore $KEYSTORE -storepass 000000 $OUT $KEYALIAS > /dev/null || jarsigner -keystore $KEYSTORE $OUT $KEYALIAS
 
 echo zipalign
 zipalign -f 4 $OUT $ALIGNOUT
