@@ -16,8 +16,8 @@ class GraphRenderer implements Renderer {
     private long lastTime;
     private boolean isDirty;
     private Function function;
-    private float zoomLevel = 4;
-    
+    private float zoomLevel = 1;
+
     GraphRenderer() {
         Matrix.setIdentityM(matrix1, 0);
         Matrix.rotateM(matrix1, 0, -75, 1, 0, 0);
@@ -30,16 +30,12 @@ class GraphRenderer implements Renderer {
 
     public void setFunction(Function f) {
         function = f;
-        zoomLevel = 4;
+        zoomLevel = 1;
         isDirty = true;
     }
 
-    public void onZoom(boolean zoomIn) {
-        if (zoomIn) {
-            zoomLevel = zoomLevel / 2;
-        } else {
-            zoomLevel = zoomLevel + zoomLevel;
-        }
+    public void setZoom(float zoomLevel) {
+        this.zoomLevel = zoomLevel;
         isDirty = true;
     }
 

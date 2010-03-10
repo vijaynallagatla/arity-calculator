@@ -16,6 +16,7 @@ public class Graph3dView extends GLView implements Grapher {
     private boolean isFullScreen;
     private GraphRenderer renderer = new GraphRenderer();
     private ZoomButtonsController zoomController = new ZoomButtonsController(this);
+    private float zoomLevel = 1;
 
     public Graph3dView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -43,10 +44,34 @@ public class Graph3dView extends GLView implements Grapher {
     }
 
     public void onZoom(boolean zoomIn) {
-        renderer.onZoom(zoomIn);
-        if (!isLooping()) {
-            requestDraw();
+        boolean changed = false;
+        if (zoomIn) {
+            if (canZoomIn()) {
+                zoomLevel = zoomLevel / 2;
+                changed = true;
+            }
+        } else {
+            if (canZoomOut()) {
+                zoomLevel = zoomLevel + zoomLevel;
+                changed = true;
+            }
         }
+        if (changed) {
+            zoomController.setZoomInEnabled(canZoomIn());
+            zoomController.setZoomOutEnabled(canZoomOut());
+            renderer.setZoom(zoomLevel);
+            if (!isLooping()) {
+                requestDraw();
+            }
+        }
+    }
+
+    private boolean canZoomIn() {
+        return zoomLevel > .3f;
+    }
+
+    private boolean canZoomOut() {
+        return zoomLevel < 3;
     }
 
     @Override
