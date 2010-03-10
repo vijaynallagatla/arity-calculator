@@ -1,5 +1,6 @@
 -keep public class * extends android.app.Activity
 -keep public class * extends android.view.View { public <init>(...); }
+-keep class *WrapNew
 -dontskipnonpubliclibraryclasses
 -optimizationpasses 2
 -flattenpackagehierarchy

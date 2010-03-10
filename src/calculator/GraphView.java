@@ -561,7 +561,7 @@ public class GraphView extends View implements Grapher {
         int pointer = (fullAction & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
         float x = event.getX();
         float y = event.getY();
-        int nPoints = event.getPointerCount();
+        int nPoints = MotionEventWrap.getPointerCount(event);
 
         switch (action) {
         case MotionEvent.ACTION_DOWN:
@@ -582,7 +582,7 @@ public class GraphView extends View implements Grapher {
                 }
                 onTouchMove(x, y, event);
             } else if (nPoints == 2) {
-                onTouchZoomMove(x, y, event.getX(1), event.getY(1));
+                onTouchZoomMove(x, y, MotionEventWrap.getX(event, 1), MotionEventWrap.getY(event, 1));
             }
             break;
 
@@ -592,7 +592,7 @@ public class GraphView extends View implements Grapher {
 
         case MotionEvent.ACTION_POINTER_DOWN:
             if (nPoints == 2) {
-                onTouchZoomDown(x, y, event.getX(1), event.getY(1));
+                onTouchZoomDown(x, y, MotionEventWrap.getX(event, 1), MotionEventWrap.getY(event, 1));
             }
             break;
 
