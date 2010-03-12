@@ -77,7 +77,7 @@ class Graph3d {
     }
 
     public void update(GL11 gl, Function f, float zoom) {
-        final float size = 4;
+        final float size = 4*zoom;
         final float minX = -size, maxX = size, minY = -size, maxY = size;
 
         Calculator.log("update VBOs " + vertexVbo + ' ' + colorVbo + ' ' + vertexElementVbo);
@@ -99,7 +99,7 @@ class Graph3d {
                 float xinc = (i & 1) == 0 ? stepX : -stepX;
                 x += xinc;
                 for (int j = 0; j < N; ++j, x+=xinc, pos+=3) {
-                    float z = (float) f.eval(x*zoom, y*zoom);
+                    float z = (float) f.eval(x, y);
                     if (z != z) {
                         z = 0;
                     }
@@ -111,7 +111,7 @@ class Graph3d {
                     }
                 }
             }
-            maxAbs = Math.min(maxAbs, 6);
+            maxAbs = Math.min(maxAbs, 15);
 
             for (int i = (N*N*4-4), j = (N*N*3-3); i >= 0; i-=4, j-=3) {
                 float z = vertices[j+2];
