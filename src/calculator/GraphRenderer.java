@@ -17,6 +17,7 @@ class GraphRenderer implements Renderer {
     private boolean isDirty;
     private Function function;
     private float zoomLevel = 1;
+    private float width, height;
 
     GraphRenderer() {
         Matrix.setIdentityM(matrix1, 0);
@@ -52,13 +53,21 @@ class GraphRenderer implements Renderer {
         angleY = 0;
     }
 
-    private static final float NEAR = 11;
+    private static final float NEAR = 10;
     public void onSurfaceChanged(GL10 gl, int width, int height) {
+        this.width = width;
+        this.height = height;
         gl.glViewport(0, 0, width, height);
+        initFrustum(gl);
+    }
+
+    private void initFrustum(GL10 gl) {
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
-        float h = NEAR/5f * height / (float) width;
-        gl.glFrustumf(-NEAR/5f, NEAR/5f, -h, h, NEAR, NEAR+18);
+        final float near = NEAR * zoomLevel;
+        final float dimen = near/5f;
+        float h = dimen * height / width;
+        gl.glFrustumf(-dimen, dimen, -h, h, near, near+near*2);
         // gl.glOrthof(-NEAR, NEAR, -h, h, NEAR, NEAR+12);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
@@ -68,6 +77,7 @@ class GraphRenderer implements Renderer {
     public void onDrawFrame(GL10 gl10) {
         GL11 gl = (GL11) gl10;
         if (isDirty) {
+            initFrustum(gl);
             Graph3d.instance.update(gl, function, zoomLevel);
             isDirty = false;
         }
@@ -81,7 +91,7 @@ class GraphRenderer implements Renderer {
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glLoadIdentity();
-        gl.glTranslatef(0, 0, -(NEAR+9f));
+        gl.glTranslatef(0, 0, -NEAR*zoomLevel*2);
 
         Matrix.setIdentityM(matrix2, 0);
         float ax = Math.abs(angleX);
