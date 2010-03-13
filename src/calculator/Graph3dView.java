@@ -16,7 +16,7 @@ public class Graph3dView extends GLView implements Grapher {
     private boolean isFullScreen;
     private GraphRenderer renderer = new GraphRenderer();
     private ZoomButtonsController zoomController = new ZoomButtonsController(this);
-    private float zoomLevel = 1;
+    private float zoomLevel = 1, targetZoom, zoomStep = 0;
 
     public Graph3dView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -46,32 +46,51 @@ public class Graph3dView extends GLView implements Grapher {
     public void onZoom(boolean zoomIn) {
         boolean changed = false;
         if (zoomIn) {
-            if (canZoomIn()) {
-                zoomLevel = zoomLevel / 2;
+            if (canZoomIn(zoomLevel)) {
+                targetZoom = zoomLevel * .625f;
+                zoomStep = -zoomLevel / 40;
                 changed = true;
             }
         } else {
-            if (canZoomOut()) {
-                zoomLevel = zoomLevel + zoomLevel;
+            if (canZoomOut(zoomLevel)) {
+                targetZoom = zoomLevel * 1.6f;
+                zoomStep = zoomLevel / 20;
                 changed = true;
             }
         }
         if (changed) {
-            zoomController.setZoomInEnabled(canZoomIn());
-            zoomController.setZoomOutEnabled(canZoomOut());
-            renderer.setZoom(zoomLevel);
-            if (!isLooping()) {
-                requestDraw();
+            zoomController.setZoomInEnabled(canZoomIn(targetZoom));
+            zoomController.setZoomOutEnabled(canZoomOut(targetZoom));
+            if (!renderer.shouldRotate()) {
+                renderer.setRotation(0, 0);
             }
+            startLooping();
         }
     }
 
-    private boolean canZoomIn() {
-        return zoomLevel > .3f;
+    @Override
+    protected void myDraw() {
+        if ((zoomStep < 0 && zoomLevel > targetZoom) ||
+            (zoomStep > 0 && zoomLevel < targetZoom)) {
+            zoomLevel += zoomStep;
+            renderer.setZoom(zoomLevel);
+        } else if (zoomStep != 0) {
+            zoomStep = 0;
+            zoomLevel = targetZoom;
+            renderer.isDirty = true;
+            if (!renderer.shouldRotate()) {
+                stopLooping();
+            }
+        }
+        super.myDraw();
     }
 
-    private boolean canZoomOut() {
-        return zoomLevel < 3;
+    private boolean canZoomIn(float zoom) {
+        return zoom > .2f;
+    }
+
+    private boolean canZoomOut(float zoom) {
+        return zoom < 5;
     }
 
     @Override
@@ -122,8 +141,7 @@ public class Graph3dView extends GLView implements Grapher {
             float vy = velocityTracker.getYVelocity();
             // Calculator.log("velocity " + vx + ' ' + vy);
             renderer.setRotation(vx/100, vy/100);
-            final float limit = 50;
-            if (vx < -limit || vx > limit || vy < -limit || vy > limit) {
+            if (renderer.shouldRotate()) {
                 startLooping();
             }
             // no break
