@@ -75,11 +75,12 @@ class Graph3d {
     }
 
     public void update(GL11 gl, Function f, float zoom) {
+        final int NTICK = 5;
         final float size = 4*zoom;
         final float minX = -size, maxX = size, minY = -size, maxY = size;
 
         Calculator.log("update VBOs " + vertexVbo + ' ' + colorVbo + ' ' + vertexElementVbo);
-        int nVertex = N*N+6+8;
+        int nVertex = N*N+6+8 + NTICK*6;
         int nFloats = nVertex * 3;
         float vertices[] = new float[nFloats];
         float colors[] = new float[nVertex << 2];        
@@ -109,6 +110,7 @@ class Graph3d {
                     }
                 }
             }
+            maxAbs *= .9f;
             maxAbs = Math.min(maxAbs, 15);
 
             for (int i = (N*N*4-4), j = (N*N*3-3); i >= 0; i-=4, j-=3) {
@@ -120,17 +122,18 @@ class Graph3d {
                 colors[i+3] = 1;
             }
         }
-        final int base = N*N*3;
-        final int colorBase = N*N*4;
+        int base = N*N*3;
+        int colorBase = N*N*4;
         int p = base;
-        for (int i = -4; i <= 4; i+=8) {
-            vertices[p] = i; vertices[p+1] = -4; vertices[p+2] = 0;
+        final int baseSize = 2;
+        for (int i = -baseSize; i <= baseSize; i+=2*baseSize) {
+            vertices[p] = i; vertices[p+1] = -baseSize; vertices[p+2] = 0;
             p += 3;
-            vertices[p] = i; vertices[p+1] = 4; vertices[p+2] = 0;
+            vertices[p] = i; vertices[p+1] = baseSize; vertices[p+2] = 0;
             p += 3;
-            vertices[p] = -4; vertices[p+1] = i; vertices[p+2] = 0;
+            vertices[p] = -baseSize; vertices[p+1] = i; vertices[p+2] = 0;
             p += 3;
-            vertices[p] = 4; vertices[p+1] = i; vertices[p+2] = 0;
+            vertices[p] = baseSize; vertices[p+1] = i; vertices[p+2] = 0;
             p += 3;
         }
         for (int i = colorBase; i < colorBase+8*4; i += 4) {
@@ -139,7 +142,10 @@ class Graph3d {
             colors[i+2] = 1;
             colors[i+3] = 1;
         }
-        final float unit = 6;
+        base += 8*3;
+        colorBase += 8*4;
+
+        final float unit = 2;
         final float axis[] = {
             0, 0, 0,
             unit, 0, 0,
@@ -148,13 +154,50 @@ class Graph3d {
             0, 0, 0,
             0, 0, unit,
         };
-        System.arraycopy(axis, 0, vertices, base+8*3, 6*3);
-        for (int i = colorBase+8*4; i < colorBase+(6+8)*4; i+=4) {
+        System.arraycopy(axis, 0, vertices, base, 6*3);
+        for (int i = colorBase; i < colorBase+6*4; i+=4) {
             colors[i] = 1;
             colors[i+1] = 1;
             colors[i+2] = 1;
             colors[i+3] = 1;
         }                
+        base += 6*3;
+        colorBase += 6*4;
+
+        p = base;
+        final float tick = .02f;
+        for (int i = 1; i <= NTICK; ++i) {
+            vertices[p] = i;
+            vertices[p+1] = -tick;
+            vertices[p+2] = -tick;
+
+            vertices[p+3] = i;
+            vertices[p+4] = tick;
+            vertices[p+5] = tick;
+            p += 6;
+
+            vertices[p] = -tick;
+            vertices[p+1] = i;
+            vertices[p+2] = -tick;
+
+            vertices[p+3] = tick;
+            vertices[p+4] = i;
+            vertices[p+5] = tick;
+            p += 6;
+
+            vertices[p] = -tick;
+            vertices[p+1] = -tick;
+            vertices[p+2] = i;
+
+            vertices[p+3] = tick;
+            vertices[p+4] = tick;
+            vertices[p+5] = i;
+            p += 6;
+            
+        }
+        for (int i = colorBase+NTICK*6*4-1; i >= colorBase; --i) {
+            colors[i] = 1;
+        }
 
         vertexBuf = buildBuffer(vertices);
         colorBuf  = buildBuffer(colors);
@@ -195,6 +238,6 @@ class Graph3d {
             gl.glDrawElements(GL10.GL_LINE_STRIP, N*N, GL10.GL_UNSIGNED_SHORT, verticeIdx);
         }
         gl.glDrawArrays(GL10.GL_LINE_STRIP, 0, N*N);
-        gl.glDrawArrays(GL10.GL_LINES, N*N, 6+8);
+        gl.glDrawArrays(GL10.GL_LINES, N*N, 6+8+60);
     }
 }
