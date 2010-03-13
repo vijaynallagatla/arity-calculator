@@ -14,10 +14,11 @@ class GraphRenderer implements Renderer {
     private float angleX, angleY;
     private int drawCnt;
     private long lastTime;
-    private boolean isDirty;
+    boolean isDirty;
     private Function function;
     private float zoomLevel = 1;
     private float width, height;
+    private float currentZoom;
 
     GraphRenderer() {
         Matrix.setIdentityM(matrix1, 0);
@@ -29,6 +30,11 @@ class GraphRenderer implements Renderer {
         angleY = y;
     }
 
+    boolean shouldRotate() {
+        final float limit = .5f;
+        return angleX < -limit || angleX > limit || angleY < -limit || angleY > limit;
+    }
+
     public void setFunction(Function f) {
         function = f;
         zoomLevel = 1;
@@ -37,7 +43,6 @@ class GraphRenderer implements Renderer {
 
     public void setZoom(float zoomLevel) {
         this.zoomLevel = zoomLevel;
-        isDirty = true;
     }
 
     public void onSurfaceCreated(GL10 gl, EGLConfig dummy) {
@@ -53,21 +58,24 @@ class GraphRenderer implements Renderer {
         angleY = 0;
     }
 
-    private static final float NEAR = 10;
+    //private static final float NEAR = 7.5f;
+    private static final float DISTANCE = 15f;
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         this.width = width;
         this.height = height;
         gl.glViewport(0, 0, width, height);
-        initFrustum(gl);
+        initFrustum(gl, DISTANCE * zoomLevel);
+        currentZoom = zoomLevel;
     }
 
-    private void initFrustum(GL10 gl) {
+    private void initFrustum(GL10 gl, float distance) {
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
-        final float near = NEAR * zoomLevel;
-        final float dimen = near/5f;
+        float near = distance * (1/3f);
+        float far  = distance * 2f;
+        float dimen = near/5f;
         float h = dimen * height / width;
-        gl.glFrustumf(-dimen, dimen, -h, h, near, near+near*2);
+        gl.glFrustumf(-dimen, dimen, -h, h, near, far);
         // gl.glOrthof(-NEAR, NEAR, -h, h, NEAR, NEAR+12);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
@@ -76,8 +84,11 @@ class GraphRenderer implements Renderer {
     
     public void onDrawFrame(GL10 gl10) {
         GL11 gl = (GL11) gl10;
+        if (currentZoom != zoomLevel) {
+            initFrustum(gl, DISTANCE * zoomLevel);
+            currentZoom = zoomLevel;
+        }
         if (isDirty) {
-            initFrustum(gl);
             Graph3d.instance.update(gl, function, zoomLevel);
             isDirty = false;
         }
@@ -91,7 +102,7 @@ class GraphRenderer implements Renderer {
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glLoadIdentity();
-        gl.glTranslatef(0, 0, -NEAR*zoomLevel*2);
+        gl.glTranslatef(0, 0, -DISTANCE*zoomLevel);
 
         Matrix.setIdentityM(matrix2, 0);
         float ax = Math.abs(angleX);

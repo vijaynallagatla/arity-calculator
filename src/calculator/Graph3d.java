@@ -16,9 +16,7 @@ import org.javia.arity.*;
 class Graph3d {
     static Graph3d instance = new Graph3d();
 
-    private static final int N = 24;
-    // private float minX = -4, maxX = 4, minY = -4, maxY = 4; 
-
+    private static final int N = 36;
     private ShortBuffer verticeIdx;
     private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
