@@ -1,19 +1,11 @@
+// Copyright (C) 2010 Mihai Preda
+
 package calculator;
 
 import android.view.MotionEvent;
-import android.os.Build;
 
 class MotionEventWrap {
-    private static final boolean IS_API_5 = getSdkVersion() >= 5;
-
-    static int getSdkVersion() {
-        try {
-            return Integer.parseInt(Build.VERSION.SDK);
-        } catch (NumberFormatException e) {
-            Calculator.log("invalid SDK " + Build.VERSION.SDK);
-            return 3;
-        }
-    }
+    private static final boolean IS_API_5 = Util.SDK_VERSION >= 5;
 
     static int getPointerCount(MotionEvent event) {
         return IS_API_5 ? MotionEventWrapNew.getPointerCount(event) : 1;
