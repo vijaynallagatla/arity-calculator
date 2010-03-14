@@ -6,6 +6,7 @@ import org.javia.arity.Function;
 import android.widget.ZoomButtonsController;
 
 interface Grapher extends ZoomButtonsController.OnZoomListener {
+    static final String SCREENSHOT_DIR = "/screenshots";
     public void setFunction(Function f);
     public void onPause();
     public void onResume();

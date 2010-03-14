@@ -24,6 +24,7 @@ import android.graphics.Path;
 import android.graphics.Region;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.Bitmap;
 
 import android.os.Handler;
 import android.os.Message;
@@ -91,7 +92,10 @@ public class GraphView extends View implements Grapher {
     }
 
     public String captureScreenshot() {
-        return null;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        onDraw(canvas);
+        return Util.saveBitmap(bitmap, Grapher.SCREENSHOT_DIR, "calculator");
     }
 
     private void clearAllGraph() {
