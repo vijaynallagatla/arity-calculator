@@ -37,12 +37,11 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private int width, height;
     private Renderer renderer;
     private boolean mIsLooping;
-    private static final String IMAGE_DIR = "/screenshots";
 
     public String captureScreenshot() {
         Bitmap bitmap = getRawPixels(gl, width, height);
         Util.bitmapBGRtoRGB(bitmap, width, height);
-        return Util.saveBitmap(bitmap, IMAGE_DIR, "calculator");
+        return Util.saveBitmap(bitmap, Grapher.SCREENSHOT_DIR, "calculator");
     }
 
     private static Bitmap getRawPixels(GL10 gl, int width, int height) {
