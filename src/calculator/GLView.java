@@ -12,6 +12,10 @@ import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.opengles.GL11;
 
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.nio.ByteOrder;
+
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
@@ -19,6 +23,7 @@ import android.view.SurfaceView;
 import android.opengl.GLSurfaceView.Renderer;
 import android.os.Handler;
 import android.os.Message;
+import android.graphics.Bitmap;
 
 abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private boolean hasSurface;
@@ -32,6 +37,26 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private int width, height;
     private Renderer renderer;
     private boolean mIsLooping;
+    private static final String IMAGE_DIR = "/screenshots";
+
+    public String captureScreenshot() {
+        Bitmap bitmap = getRawPixels(gl, width, height);
+        Util.bitmapBGRtoRGB(bitmap, width, height);
+        return Util.saveBitmap(bitmap, IMAGE_DIR, "calculator");
+    }
+
+    private static Bitmap getRawPixels(GL10 gl, int width, int height) {
+        int size = width * height;
+        ByteBuffer buf = ByteBuffer.allocateDirect(size * 4);
+        buf.order(ByteOrder.nativeOrder());
+        gl.glReadPixels(0, 0, width, height, GL10.GL_RGBA, GL10.GL_UNSIGNED_BYTE, buf);
+        int data[] = new int[size];
+        buf.asIntBuffer().get(data);
+        buf = null;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        bitmap.setPixels(data, size-width, -width, 0, 0, width, height);
+        return bitmap;
+    }
 
     private Handler handler = new Handler() {
             public void handleMessage(Message msg) {

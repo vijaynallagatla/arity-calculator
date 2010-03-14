@@ -104,7 +104,6 @@ public class Graph3dView extends GLView implements Grapher {
         if (!isFullScreen) {
             return super.onTouchEvent(event);
         }
-
         int action = event.getAction();
         float x = event.getX();
         float y = event.getY();

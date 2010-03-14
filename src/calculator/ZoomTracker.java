@@ -1,3 +1,5 @@
+// Copyright (C) 2010 Mihai Preda
+
 package calculator;
 
 class ZoomTracker {

@@ -90,6 +90,10 @@ public class GraphView extends View implements Grapher {
         zoomController.setOnZoomListener(this);
     }
 
+    public String captureScreenshot() {
+        return null;
+    }
+
     private void clearAllGraph() {
         for (int i = 0; i < GRAPHS_SIZE; ++i) {
             graphs[i].clear();

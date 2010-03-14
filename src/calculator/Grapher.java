@@ -8,5 +8,6 @@ import android.widget.ZoomButtonsController;
 interface Grapher extends ZoomButtonsController.OnZoomListener {
     public void setFunction(Function f);
     public void onPause();
-    public void onResume();    
+    public void onResume();
+    public String captureScreenshot();
 }

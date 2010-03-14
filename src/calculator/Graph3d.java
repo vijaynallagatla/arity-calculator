@@ -16,7 +16,7 @@ import org.javia.arity.*;
 class Graph3d {
     static Graph3d instance = new Graph3d();
 
-    private static final int N = 36;
+    private final int N = Util.SDK_VERSION >= 5 ? 36 : 24;
     private ShortBuffer verticeIdx;
     private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
@@ -31,7 +31,7 @@ class Graph3d {
                 b[p++] = (short)(v+i);
                 b[p++] = (short)(v+N+N-1-i);
             }
-            v = N*(N-2);
+            v = (short) (N*(N-2));
             i++;
             for (int j = N-1; j >= 0; v -= N+N, j-=2) {
                 b[p++] = (short)(v+N+N-1-i);

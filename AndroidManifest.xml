@@ -5,6 +5,7 @@
    android:versionCode="23"
    android:versionName="1.23">
   <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="7" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
   <application android:label="Arity" android:icon="@drawable/icon" >
     <activity android:name="calculator.Calculator"
               android:label="Arity"

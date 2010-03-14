@@ -5,14 +5,21 @@ package calculator;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
-import android.opengl.GLSurfaceView;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.content.Intent;
+import android.net.Uri;
+import android.widget.Toast;
+
 import org.javia.arity.Function;
 import java.util.ArrayList;
+import java.io.File;
+import arity.calculator.R;
 
 public class ShowGraph extends Activity {
     private Grapher view;
     private GraphView graphView;
-    private GLSurfaceView surfaceView;
 
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -32,20 +39,35 @@ public class ShowGraph extends Activity {
     protected void onPause() {
         super.onPause();
         view.onPause();
-        /*
-        if (surfaceView != null) {
-            surfaceView.onPause();
-        }
-        */
     }
 
     protected void onResume() {
         super.onResume();
         view.onResume();
-        /*
-        if (surfaceView != null) {
-            surfaceView.onResume();
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        (new MenuInflater(this)).inflate(R.menu.graph, menu);
+        return true;
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) {
+        super.onOptionsItemSelected(item);
+        switch (item.getItemId()) {
+        case R.id.capture_screenshot:
+            String fileName = view.captureScreenshot();
+            if (fileName != null) {
+                Toast.makeText(this, "screenshot saved as \n" + fileName, Toast.LENGTH_LONG).show();
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setDataAndType(Uri.fromFile(new File(fileName)), "image/png");
+                startActivity(i);
+            }
+            break;
+
+        default:
+            return false;
         }
-        */
+        return true;
     }
 }

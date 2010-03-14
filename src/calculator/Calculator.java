@@ -27,6 +27,7 @@ import java.util.ArrayList;
 
 import arity.calculator.R;
 
+import org.javia.arity.Util;
 import org.javia.arity.*;
 
 public class Calculator extends Activity implements TextWatcher, 
@@ -176,8 +177,7 @@ public class Calculator extends Activity implements TextWatcher,
 
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-	MenuInflater inflater = new MenuInflater(this);
-	inflater.inflate(R.menu.main, menu);
+        (new MenuInflater(this)).inflate(R.menu.main, menu);
         return true;
     }
     
