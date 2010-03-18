@@ -20,7 +20,6 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.opengl.GLSurfaceView.Renderer;
 import android.os.Handler;
 import android.os.Message;
 import android.graphics.Bitmap;
@@ -34,9 +33,11 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
     private EGLSurface surface;
     private EGLContext eglContext;
     private GL11 gl;
-    private int width, height;
-    private Renderer renderer;
+    protected int width, height;
     private boolean mIsLooping;
+
+    abstract void onDrawFrame(GL10 gl);
+    abstract void onSurfaceCreated(GL10 gl, int width, int height);
 
     public String captureScreenshot() {
         Bitmap bitmap = getRawPixels(gl, width, height);
@@ -59,13 +60,9 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
 
     private Handler handler = new Handler() {
             public void handleMessage(Message msg) {
-                myDraw();
+                glDraw();
             }
         };
-
-    public void setRenderer(Renderer renderer) {
-        this.renderer = renderer;
-    }
 
     public GLView(Context context) {
         super(context);
@@ -111,8 +108,7 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         surface = egl.eglCreateWindowSurface(display, config, getHolder(), null);
         egl.eglMakeCurrent(display, surface, surface, eglContext);
         gl = (GL11) eglContext.getGL();
-        renderer.onSurfaceCreated(gl, null);
-        renderer.onSurfaceChanged(gl, width, height);
+        onSurfaceCreated(gl, width, height);
         requestDraw();
     }
 
@@ -133,11 +129,9 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         }
     }
 
-    protected void myDraw() {
-        // Calculator.log("draw " + stopped);
+    protected void glDraw() {
         if (hasSurface && !paused) {
-            // Calculator.log("myDraw " + this);
-            renderer.onDrawFrame(gl);
+            onDrawFrame(gl);
             if (!egl.eglSwapBuffers(display, surface)) {
                 Calculator.log("swapBuffers error " + egl.eglGetError());
             }
@@ -176,7 +170,7 @@ abstract class GLView extends SurfaceView implements SurfaceHolder.Callback {
         if (!mIsLooping) {
             Calculator.log("start looping");
             mIsLooping = true;
-            myDraw();
+            glDraw();
         }
     }
 
