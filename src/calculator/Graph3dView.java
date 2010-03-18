@@ -194,7 +194,7 @@ public class Graph3dView extends GLView implements Grapher {
         gl.glClearColor(0, 0, 0, 1);
         gl.glShadeModel(Calculator.useHighQuality3d ? GL10.GL_SMOOTH : GL10.GL_FLAT);
         gl.glDisable(GL10.GL_LIGHTING);
-        graph = new Graph3d();
+        graph = new Graph3d((GL11) gl);
         isDirty = true;
         angleX = .5f;
         angleY = 0;
