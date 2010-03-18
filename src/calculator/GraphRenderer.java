@@ -49,7 +49,7 @@ class GraphRenderer implements Renderer {
         gl.glDisable(GL10.GL_DITHER);
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_FASTEST);               
         gl.glClearColor(0, 0, 0, 1);
-        gl.glShadeModel(GL10.GL_SMOOTH);
+        gl.glShadeModel(Calculator.useHighQuality3d ? GL10.GL_SMOOTH : GL10.GL_FLAT);
         gl.glDisable(GL10.GL_LIGHTING);
         Graph3d.instance.init(gl);
         Graph3d.instance.update((GL11) gl, function, zoomLevel);

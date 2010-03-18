@@ -2,8 +2,8 @@
 <manifest
    xmlns:android="http://schemas.android.com/apk/res/android"
    package="arity.calculator"
-   android:versionCode="24"
-   android:versionName="1.24">
+   android:versionCode="25"
+   android:versionName="1.25">
   <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="7" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
   <application android:label="Arity" android:icon="@drawable/icon" >
@@ -21,5 +21,6 @@
     <activity android:name="calculator.ShowGraph3d" android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
     <activity android:name="calculator.ListDefs" android:label="User definitions" />
     <activity android:name="calculator.Help" android:label="Arity Calculator" />
+    <activity android:name="calculator.Settings" android:label="Calculator settings" />
   </application>
 </manifest> 

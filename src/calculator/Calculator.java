@@ -22,6 +22,8 @@ import android.util.Log;
 import android.content.res.Resources;
 import android.content.res.Configuration;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 import java.util.ArrayList;
 
@@ -33,7 +35,8 @@ import org.javia.arity.*;
 public class Calculator extends Activity implements TextWatcher, 
 						    View.OnKeyListener,
                                                     View.OnClickListener,
-						    AdapterView.OnItemClickListener
+						    AdapterView.OnItemClickListener,
+                                                    SharedPreferences.OnSharedPreferenceChangeListener
 {
     static final char MINUS = '\u2212', TIMES = '\u00d7', DIV = '\u00f7', SQRT = '\u221a', PI = '\u03c0', 
         UP_ARROW = '\u21e7', DN_ARROW = '\u21e9', ARROW = '\u21f3';
@@ -59,6 +62,7 @@ public class Calculator extends Activity implements TextWatcher,
     static ArrayList<Function> graphedFunction;
     static Defs defs;
     private ArrayList<Function> auxFuncs = new ArrayList<Function>();
+    static boolean useHighQuality3d = true;
 
     private static final char[][] ALPHA = {
         {'q', 'w', '=', ',', ';', SQRT, '!', '\''},
@@ -160,6 +164,15 @@ public class Calculator extends Activity implements TextWatcher,
 	    }
 	    nDigits = 0;
 	}
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.registerOnSharedPreferenceChangeListener(this);
+        String value = prefs.getString("quality", null);
+        if (value == null) {
+            useHighQuality3d = calculator.Util.SDK_VERSION >= 5;
+            prefs.edit().putString("quality", useHighQuality3d ? "high" : "low").commit();
+        } else {
+            useHighQuality3d = value.equals("high");   
+        }
     }
     
     public void onPause() {
@@ -213,10 +226,22 @@ public class Calculator extends Activity implements TextWatcher,
             defs.save();
             break;
 
+        case R.id.settings:
+            startActivity(new Intent(this, Settings.class));
+            break;
+
 	default:
 	    return false;
 	}
 	return true;
+    }
+
+    //OnSharedPreferenceChangeListener
+    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {       
+        if (key.equals("quality")) {
+            useHighQuality3d = prefs.getString(key, "high").equals("high");
+            Calculator.log("useHigh quality changed to " + useHighQuality3d);
+        }
     }
 
     //OnClickListener
