@@ -16,13 +16,17 @@ import org.javia.arity.*;
 class Graph3d {
     static Graph3d instance = new Graph3d();
 
-    private final int N = Util.SDK_VERSION >= 5 ? 36 : 24;
+    private final int N = Calculator.useHighQuality3d ? 36 : 24;
     private ShortBuffer verticeIdx;
     private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
     private boolean useVBO;
     
     private Graph3d() {
+        init();
+    }
+
+    void init() {
         short[] b = new short[N*N];
         int p = 0;
         for (int i = 0; i < N; i++) {
@@ -75,7 +79,7 @@ class Graph3d {
     }
 
     public void update(GL11 gl, Function f, float zoom) {
-        final int NTICK = 5;
+        final int NTICK = Calculator.useHighQuality3d ? 5 : 0;
         final float size = 4*zoom;
         final float minX = -size, maxX = size, minY = -size, maxY = size;
 
