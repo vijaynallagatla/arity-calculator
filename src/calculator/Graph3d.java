@@ -19,9 +19,8 @@ class Graph3d {
     private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
     private boolean useVBO;
-    private boolean inited = false;
     
-    private void init(GL11 gl) {
+    Graph3d(GL11 gl) {
         short[] b = new short[N*N];
         int p = 0;
         for (int i = 0; i < N; i++) {
@@ -50,7 +49,6 @@ class Graph3d {
             colorVbo  = out[1];
             vertexElementVbo = out[2];
         }
-        inited = true;
     }
 
     private static FloatBuffer buildBuffer(float[] b) {
@@ -72,10 +70,6 @@ class Graph3d {
     }
 
     public void update(GL11 gl, Function f, float zoom) {
-        if (!inited) {
-            init(gl);
-            inited = true;
-        }
         final int NTICK = Calculator.useHighQuality3d ? 5 : 0;
         final float size = 4*zoom;
         final float minX = -size, maxX = size, minY = -size, maxY = size;
