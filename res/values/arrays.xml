@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources> 
+<array name="pref_entries"> 
+    <item>Hight quality, slow</item> 
+    <item>Low quality, fast</item> 
+</array>
+<array name="pref_values">
+    <item>high</item>
+    <item>low</item>
+</array>
+</resources>
