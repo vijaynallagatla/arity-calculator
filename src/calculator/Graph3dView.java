@@ -7,16 +7,22 @@ import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.widget.ZoomButtonsController;
 import android.util.AttributeSet;
-import android.opengl.GLSurfaceView.Renderer;
+import org.javia.arity.Function;
+
+import android.opengl.Matrix;
+import javax.microedition.khronos.opengles.GL10;
+import javax.microedition.khronos.opengles.GL11;
+import javax.microedition.khronos.egl.EGLConfig;
 import org.javia.arity.Function;
 
 public class Graph3dView extends GLView implements Grapher {
     private float lastTouchX, lastTouchY;
     private VelocityTracker velocityTracker;
     private boolean isFullScreen;
-    private GraphRenderer renderer = new GraphRenderer();
     private ZoomButtonsController zoomController = new ZoomButtonsController(this);
-    private float zoomLevel = 1, targetZoom, zoomStep = 0;
+    private float zoomLevel = 1, targetZoom, zoomStep = 0, currentZoom;
+    private FPS fps = new FPS();
+    private Graph3d graph;
 
     public Graph3dView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -31,13 +37,11 @@ public class Graph3dView extends GLView implements Grapher {
     }
 
     private void init() {
-        setRenderer(renderer);
         startLooping();
         zoomController.setOnZoomListener(this);
-    }
-
-    public void setFunction(Function f) {
-        renderer.setFunction(f);
+        
+        Matrix.setIdentityM(matrix1, 0);
+        Matrix.rotateM(matrix1, 0, -75, 1, 0, 0);
     }
 
     public void onVisibilityChanged(boolean visible) {
@@ -61,28 +65,27 @@ public class Graph3dView extends GLView implements Grapher {
         if (changed) {
             zoomController.setZoomInEnabled(canZoomIn(targetZoom));
             zoomController.setZoomOutEnabled(canZoomOut(targetZoom));
-            if (!renderer.shouldRotate()) {
-                renderer.setRotation(0, 0);
+            if (!shouldRotate()) {
+                setRotation(0, 0);
             }
             startLooping();
         }
     }
 
     @Override
-    protected void myDraw() {
+    protected void glDraw() {
         if ((zoomStep < 0 && zoomLevel > targetZoom) ||
             (zoomStep > 0 && zoomLevel < targetZoom)) {
             zoomLevel += zoomStep;
-            renderer.setZoom(zoomLevel);
         } else if (zoomStep != 0) {
             zoomStep = 0;
             zoomLevel = targetZoom;
-            renderer.isDirty = true;
-            if (!renderer.shouldRotate()) {
+            isDirty = true;
+            if (!shouldRotate()) {
                 stopLooping();
             }
         }
-        super.myDraw();
+        super.glDraw();
     }
 
     private boolean canZoomIn(float zoom) {
@@ -99,6 +102,7 @@ public class Graph3dView extends GLView implements Grapher {
         super.onDetachedFromWindow();
     }
 
+    @Override
     public boolean onTouchEvent(MotionEvent event) {
         // Calculator.log("touch " + event);
         if (!isFullScreen) {
@@ -127,8 +131,8 @@ public class Graph3dView extends GLView implements Grapher {
             float deltaX = x - lastTouchX;
             float deltaY = y - lastTouchY;
             if (deltaX > 1 || deltaX < -1 || deltaY > 1 || deltaY < -1) {
-                renderer.setRotation(deltaX, deltaY);
-                myDraw();
+                setRotation(deltaX, deltaY);
+                glDraw();
                 lastTouchX = x;
                 lastTouchY = y;
             }
@@ -139,8 +143,8 @@ public class Graph3dView extends GLView implements Grapher {
             float vx = velocityTracker.getXVelocity();
             float vy = velocityTracker.getYVelocity();
             // Calculator.log("velocity " + vx + ' ' + vy);
-            renderer.setRotation(vx/100, vy/100);
-            if (renderer.shouldRotate()) {
+            setRotation(vx/100, vy/100);
+            if (shouldRotate()) {
                 startLooping();
             }
             // no break
@@ -156,5 +160,111 @@ public class Graph3dView extends GLView implements Grapher {
             // Calculator.log("touch action " + action + ' ' + event);
         }
         return true;
+    }
+
+
+    // ----
+
+    private float[] matrix1 = new float[16], matrix2 = new float[16], matrix3 = new float[16];
+    private float angleX, angleY;
+    private boolean isDirty;
+    private Function function;
+    private static final float DISTANCE = 15f;
+
+    void setRotation(float x, float y) {
+        angleX = x;
+        angleY = y;
+    }
+
+    boolean shouldRotate() {
+        final float limit = .5f;
+        return angleX < -limit || angleX > limit || angleY < -limit || angleY > limit;
+    }
+
+    public void setFunction(Function f) {
+        function = f;
+        zoomLevel = 1;
+        isDirty = true;
+    }
+
+    @Override
+    public void onSurfaceCreated(GL10 gl, int width, int height) {
+        gl.glDisable(GL10.GL_DITHER);
+        gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_FASTEST);               
+        gl.glClearColor(0, 0, 0, 1);
+        gl.glShadeModel(Calculator.useHighQuality3d ? GL10.GL_SMOOTH : GL10.GL_FLAT);
+        gl.glDisable(GL10.GL_LIGHTING);
+        graph = new Graph3d();
+        isDirty = true;
+        angleX = .5f;
+        angleY = 0;
+        
+        gl.glViewport(0, 0, width, height);
+        initFrustum(gl, DISTANCE * zoomLevel);
+        currentZoom = zoomLevel;
+    }
+    
+    @Override
+    public void onDrawFrame(GL10 gl10) {
+        GL11 gl = (GL11) gl10;
+        if (currentZoom != zoomLevel) {
+            initFrustum(gl, DISTANCE * zoomLevel);
+            currentZoom = zoomLevel;
+        }
+        if (isDirty) {
+            graph.update(gl, function, zoomLevel);
+            isDirty = false;
+        }
+
+        if (fps.incFrame()) {
+            Calculator.log("f/s " + fps.getValue());
+        }
+
+        gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
+        gl.glMatrixMode(GL10.GL_MODELVIEW);
+        gl.glLoadIdentity();
+        gl.glTranslatef(0, 0, -DISTANCE*zoomLevel);
+
+        Matrix.setIdentityM(matrix2, 0);
+        float ax = Math.abs(angleX);
+        float ay = Math.abs(angleY);
+        if (ay * 3 < ax) {
+            Matrix.rotateM(matrix2, 0, angleX, 0, 1, 0);
+        } else if (ax * 3 < ay) {
+            Matrix.rotateM(matrix2, 0, angleY, 1, 0, 0);
+        } else {
+            if (ax > ay) {
+                Matrix.rotateM(matrix2, 0, angleX, 0, 1, 0);
+                Matrix.rotateM(matrix2, 0, angleY, 1, 0, 0);
+            } else {
+                Matrix.rotateM(matrix2, 0, angleY, 1, 0, 0);
+                Matrix.rotateM(matrix2, 0, angleX, 0, 1, 0);
+            }
+        }
+        Matrix.multiplyMM(matrix3, 0, matrix2, 0, matrix1, 0);
+        gl.glMultMatrixf(matrix3, 0);
+        System.arraycopy(matrix3, 0, matrix1, 0, 16);
+        graph.draw(gl);
+    }
+
+    private void initFrustum(GL10 gl, float distance) {
+        gl.glMatrixMode(GL10.GL_PROJECTION);
+        gl.glLoadIdentity();
+        float near = distance * (1/3f);
+        float far  = distance * 2f;
+        float dimen = near/5f;
+        float h = dimen * height / width;
+        gl.glFrustumf(-dimen, dimen, -h, h, near, far);
+        gl.glMatrixMode(GL10.GL_MODELVIEW);
+        gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
+        gl.glEnableClientState(GL10.GL_COLOR_ARRAY);
+    }
+
+    private void printMatrix(float[] m, String name) {
+        StringBuffer b = new StringBuffer();
+        for (int i = 0; i < 16; ++i) {
+            b.append(m[i]).append(' ');
+        }
+        Calculator.log(name + ' ' + b.toString());
     }
 }

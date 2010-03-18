@@ -14,19 +14,14 @@ import javax.microedition.khronos.opengles.GL11;
 import org.javia.arity.*;
 
 class Graph3d {
-    static Graph3d instance = new Graph3d();
-
     private final int N = Calculator.useHighQuality3d ? 36 : 24;
     private ShortBuffer verticeIdx;
     private FloatBuffer vertexBuf, colorBuf;
     private int vertexVbo, colorVbo, vertexElementVbo;
     private boolean useVBO;
+    private boolean inited = false;
     
-    private Graph3d() {
-        init();
-    }
-
-    void init() {
+    private void init(GL11 gl) {
         short[] b = new short[N*N];
         int p = 0;
         for (int i = 0; i < N; i++) {
@@ -43,6 +38,19 @@ class Graph3d {
             } 
         }
         verticeIdx = buildBuffer(b);
+
+        String extensions = gl.glGetString(GL10.GL_EXTENSIONS);
+        useVBO = extensions.indexOf("vertex_buffer_object") != -1;
+        Calculator.log("VBOs support: " + useVBO + " version " + gl.glGetString(GL10.GL_VERSION));
+        
+        if (useVBO) {
+            int[] out = new int[3];
+            gl.glGenBuffers(3, out, 0);        
+            vertexVbo = out[0];
+            colorVbo  = out[1];
+            vertexElementVbo = out[2];
+        }
+        inited = true;
     }
 
     private static FloatBuffer buildBuffer(float[] b) {
@@ -63,22 +71,11 @@ class Graph3d {
         return sb;
     }
 
-    public void init(GL10 gl10) {
-        GL11 gl = (GL11) gl10;
-        String extensions = gl.glGetString(GL10.GL_EXTENSIONS);
-        useVBO = extensions.indexOf("vertex_buffer_object") != -1;
-        Calculator.log("VBOs support: " + useVBO + " version " + gl.glGetString(GL10.GL_VERSION));
-        
-        if (useVBO) {
-            int[] out = new int[3];
-            gl.glGenBuffers(3, out, 0);        
-            vertexVbo = out[0];
-            colorVbo  = out[1];
-            vertexElementVbo = out[2];
-        }
-    }
-
     public void update(GL11 gl, Function f, float zoom) {
+        if (!inited) {
+            init(gl);
+            inited = true;
+        }
         final int NTICK = Calculator.useHighQuality3d ? 5 : 0;
         final float size = 4*zoom;
         final float minX = -size, maxX = size, minY = -size, maxY = size;
