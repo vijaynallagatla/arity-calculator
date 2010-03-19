@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources> 
-<array name="pref_entries"> 
-    <item>Hight quality, slow</item> 
-    <item>Low quality, fast</item> 
+<array name="quality_entries"> 
+    <item>High quality, slower</item> 
+    <item>Low quality, faster</item> 
 </array>
-<array name="pref_values">
+<array name="quality_values">
     <item>high</item>
     <item>low</item>
+</array>
+<array name="color_entries"> 
+    <item>Green</item> 
+    <item>Classic</item> 
+</array>
+<array name="color_values">
+    <item>green</item>
+    <item>classic</item>
 </array>
 </resources>

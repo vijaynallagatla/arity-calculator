@@ -63,6 +63,7 @@ public class Calculator extends Activity implements TextWatcher,
     static Defs defs;
     private ArrayList<Function> auxFuncs = new ArrayList<Function>();
     static boolean useHighQuality3d = true;
+    static boolean useNewColors = true;
 
     private static final char[][] ALPHA = {
         {'q', 'w', '=', ',', ';', SQRT, '!', '\''},
@@ -173,6 +174,7 @@ public class Calculator extends Activity implements TextWatcher,
         } else {
             useHighQuality3d = value.equals("high");   
         }
+        useNewColors = prefs.getString("color", "green").equals("green");
     }
     
     public void onPause() {
@@ -240,7 +242,9 @@ public class Calculator extends Activity implements TextWatcher,
     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {       
         if (key.equals("quality")) {
             useHighQuality3d = prefs.getString(key, "high").equals("high");
-            Calculator.log("useHigh quality changed to " + useHighQuality3d);
+            // Calculator.log("useHigh quality changed to " + useHighQuality3d);
+        } else if (key.equals("color")) {
+            useNewColors = prefs.getString(key, "green").equals("green");
         }
     }
 

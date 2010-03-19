@@ -3,7 +3,14 @@
     <ListPreference 
          android:key="quality"
          android:title="3D quality"
-         android:entries="@array/pref_entries"
-         android:entryValues="@array/pref_values"
+         android:entries="@array/quality_entries"
+         android:entryValues="@array/quality_values"
+         />
+
+    <ListPreference 
+         android:key="color"
+         android:title="3D color"
+         android:entries="@array/color_entries"
+         android:entryValues="@array/color_values"
          />
 </PreferenceScreen>

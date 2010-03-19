@@ -598,6 +598,7 @@ public class GraphView extends View implements Grapher {
             onTouchUp(x, y, event);
             break;
 
+            /*
         case MotionEvent.ACTION_POINTER_DOWN:
             if (nPoints == 2) {
                 onTouchZoomDown(x, y, MotionEventWrap.getX(event, 1), MotionEventWrap.getY(event, 1));
@@ -610,6 +611,7 @@ public class GraphView extends View implements Grapher {
                 isAfterZoom = true;
             }
             break;
+            */
         }
         return true;
     }
