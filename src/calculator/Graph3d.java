@@ -118,14 +118,25 @@ class Graph3d {
             maxAbs *= .9f;
             maxAbs = Math.min(maxAbs, 15);
 
-            for (int i = (N*N*4-4), j = (N*N*3-3); i >= 0; i-=4, j-=3) {
-                final float a = vertices[j+2] / maxAbs;
-                final float abs = Math.min(a < 0 ? -a : a, 1);
-                
-                colors[i]   = floatToByte(a);
-                colors[i+1] = floatToByte(1-abs*.5f);
-                colors[i+2] = floatToByte(-a);
-                colors[i+3] = (byte) 255;
+            final int limitColor = N*N*4;
+            if (Calculator.useNewColors) {
+                for (int i = 0, j = 0; i < limitColor; i+=4, j+=3) {
+                    final float a = vertices[j+2] / maxAbs;
+                    final float abs = Math.min(a < 0 ? -a : a, 1);                
+                    colors[i]   = floatToByte(a);
+                    colors[i+1] = floatToByte(1-abs*.5f);
+                    colors[i+2] = floatToByte(-a);
+                    colors[i+3] = (byte) 255;
+                }
+            } else {
+                for (int i = 0, j = 0; i < limitColor; i+=4, j+=3) {
+                    final float a = vertices[j+2] / maxAbs;
+                    final float abs = a < 0 ? -a : a;
+                    colors[i]   = floatToByte(a+1);
+                    colors[i+1] = floatToByte(abs);
+                    colors[i+2] = floatToByte(-a+1);
+                    colors[i+3] = (byte) 255;
+                }
             }
         }
         int base = N*N*3;
