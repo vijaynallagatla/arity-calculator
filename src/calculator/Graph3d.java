@@ -113,7 +113,9 @@ class Graph3d {
                     sum += z*z;
                 }
             }
-            maxAbs = (float) Math.sqrt(sum/(N*N));
+            float maxAbs = (float) Math.sqrt(sum/(N*N));
+            maxAbs *= .9f;
+            maxAbs = Math.min(maxAbs, 15);
             maxAbs = Math.max(maxAbs, .001f);
 
             final int limitColor = N*N*4;
