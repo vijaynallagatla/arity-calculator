@@ -15,10 +15,14 @@ import javax.microedition.khronos.opengles.GL11;
 import javax.microedition.khronos.egl.EGLConfig;
 import org.javia.arity.Function;
 
-public class Graph3dView extends GLView implements Grapher {
+public class Graph3dView extends GLView implements 
+                                            Grapher,
+                                            ZoomButtonsController.OnZoomListener,
+                                            TouchHandler.TouchHandlerInterface
+{
+
     private float lastTouchX, lastTouchY;
-    private VelocityTracker velocityTracker;
-    private boolean isFullScreen;
+    private TouchHandler touchHandler;
     private ZoomButtonsController zoomController = new ZoomButtonsController(this);
     private float zoomLevel = 1, targetZoom, zoomStep = 0, currentZoom;
     private FPS fps = new FPS();
@@ -26,13 +30,12 @@ public class Graph3dView extends GLView implements Grapher {
 
     public Graph3dView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        isFullScreen = false;
         init();
     }
 
     public Graph3dView(Context context) {
         super(context);
-        isFullScreen = true;
+        touchHandler = new TouchHandler(this);
         init();
     }
 
@@ -102,66 +105,46 @@ public class Graph3dView extends GLView implements Grapher {
         super.onDetachedFromWindow();
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        // Calculator.log("touch " + event);
-        if (!isFullScreen) {
-            return super.onTouchEvent(event);
-        }
-        int action = event.getAction();
-        float x = event.getX();
-        float y = event.getY();
-        switch (action) {
-        case MotionEvent.ACTION_DOWN:
-            zoomController.setVisible(true);
-            stopLooping();
-            if (velocityTracker == null) {
-                velocityTracker = VelocityTracker.obtain();
-            }
-            velocityTracker.addMovement(event);
-            lastTouchX = x;
-            lastTouchY = y;
-            break;
-
-        case MotionEvent.ACTION_MOVE:
-            if (velocityTracker == null) {
-                velocityTracker = VelocityTracker.obtain();
-            }
-            velocityTracker.addMovement(event);
-            float deltaX = x - lastTouchX;
-            float deltaY = y - lastTouchY;
-            if (deltaX > 1 || deltaX < -1 || deltaY > 1 || deltaY < -1) {
-                setRotation(deltaX, deltaY);
-                glDraw();
-                lastTouchX = x;
-                lastTouchY = y;
-            }
-            break;
-            
-        case MotionEvent.ACTION_UP:
-            velocityTracker.computeCurrentVelocity(1000);
-            float vx = velocityTracker.getXVelocity();
-            float vy = velocityTracker.getYVelocity();
-            // Calculator.log("velocity " + vx + ' ' + vy);
-            setRotation(vx/100, vy/100);
-            if (shouldRotate()) {
-                startLooping();
-            }
-            // no break
-
-        case MotionEvent.ACTION_CANCEL:
-            if (velocityTracker != null) {
-                velocityTracker.recycle();
-                velocityTracker = null;
-            }
-            break;
-
-        default:
-            // Calculator.log("touch action " + action + ' ' + event);
-        }
-        return true;
+    public void onTouchDown(float x, float y) {
+        zoomController.setVisible(true);
+        stopLooping();
+        lastTouchX = x;
+        lastTouchY = y;
     }
 
+    public void onTouchMove(float x, float y) {
+        float deltaX = x - lastTouchX;
+        float deltaY = y - lastTouchY;
+        if (deltaX > 1 || deltaX < -1 || deltaY > 1 || deltaY < -1) {
+            setRotation(deltaX, deltaY);
+            glDraw();
+            lastTouchX = x;
+            lastTouchY = y;
+        }
+    }
+
+    public void onTouchUp(float x, float y) {
+        float vx = touchHandler.velocityTracker.getXVelocity();
+        float vy = touchHandler.velocityTracker.getYVelocity();
+        // Calculator.log("velocity " + vx + ' ' + vy);
+        setRotation(vx/100, vy/100);
+        if (shouldRotate()) {
+            startLooping();
+        }
+    }
+
+    public void onTouchZoomDown(float x1, float y1, float x2, float y2) {
+
+    }
+
+    public void onTouchZoomMove(float x1, float y1, float x2, float y2) {
+
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        return touchHandler != null ? touchHandler.onTouchEvent(event) : super.onTouchEvent(event);
+    }
 
     // ----
 
@@ -251,7 +234,7 @@ public class Graph3dView extends GLView implements Grapher {
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
         float near = distance * (1/3f);
-        float far  = distance * 2f;
+        float far  = distance * 3f;
         float dimen = near/5f;
         float h = dimen * height / width;
         gl.glFrustumf(-dimen, dimen, -h, h, near, far);

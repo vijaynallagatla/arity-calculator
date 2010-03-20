@@ -1,11 +1,10 @@
-// Copyright (C) 2009 Mihai Preda
+// Copyright (C) 2009-2010 Mihai Preda
 
 package calculator;
 
 import org.javia.arity.Function;
-import android.widget.ZoomButtonsController;
 
-interface Grapher extends ZoomButtonsController.OnZoomListener {
+interface Grapher {
     static final String SCREENSHOT_DIR = "/screenshots";
     public void setFunction(Function f);
     public void onPause();

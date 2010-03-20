@@ -1,4 +1,4 @@
-// Copyright (C) 2009 Mihai Preda
+// Copyright (C) 2009-2010 Mihai Preda
 
 package calculator;
 
@@ -40,7 +40,11 @@ import org.javia.arity.*;
 
 import java.util.ArrayList;
 
-public class GraphView extends View implements Grapher {
+public class GraphView extends View implements 
+                                        Grapher,
+                                        ZoomButtonsController.OnZoomListener,
+                                        TouchHandler.TouchHandlerInterface
+{
     private int width, height;
     private Matrix matrix = new Matrix();
     private Paint paint = new Paint(), textPaint = new Paint(), fillPaint = new Paint();
@@ -51,14 +55,12 @@ public class GraphView extends View implements Grapher {
     private float gwidth = 8;
     private float currentX, currentY;
     private float lastMinX;
-    private boolean isFullScreen;
-    private VelocityTracker velocityTracker = VelocityTracker.obtain();
     private Scroller scroller;
-    private float lastTouchX, lastTouchY;
     private float boundMinY, boundMaxY;
-    private boolean isAfterZoom;
+    protected ZoomButtonsController zoomController = new ZoomButtonsController(this); 
     private ZoomTracker zoomTracker = new ZoomTracker();
-    private ZoomButtonsController zoomController = new ZoomButtonsController(this);
+    private TouchHandler touchHandler;
+    private float lastTouchX, lastTouchY;
 
     private static final int
         COL_AXIS = 0xff00a000,
@@ -74,21 +76,20 @@ public class GraphView extends View implements Grapher {
 
     public GraphView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        isFullScreen = false;
         init(context);
     }
 
     public GraphView(Context context) {
         super(context);
-        isFullScreen = true;
+        touchHandler = new TouchHandler(this);
         init(context);
     }
 
     private void init(Context context) {
+        zoomController.setOnZoomListener(this);
         scroller = new Scroller(context);
         paint.setAntiAlias(false);
         textPaint.setAntiAlias(true);
-        zoomController.setOnZoomListener(this);
     }
 
     public String captureScreenshot() {
@@ -127,7 +128,7 @@ public class GraphView extends View implements Grapher {
 
     public void onVisibilityChanged(boolean visible) {
     }
-    
+
     public void onZoom(boolean zoomIn) {
         if (zoomIn) {
             if (canZoomIn()) {
@@ -496,18 +497,21 @@ public class GraphView extends View implements Grapher {
         invalidate();
     }
 
-    private void onTouchDown(float x, float y, MotionEvent event) {
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        return touchHandler != null ? touchHandler.onTouchEvent(event) : super.onTouchEvent(event);
+    }
+
+    public void onTouchDown(float x, float y) {
+        zoomController.setVisible(true);
         if (!scroller.isFinished()) {
             scroller.abortAnimation();
         }
-        velocityTracker.clear();
-        velocityTracker.addMovement(event);
         lastTouchX = x;
         lastTouchY = y;
     }
 
-    private void onTouchMove(float x, float y, MotionEvent event) {
-        velocityTracker.addMovement(event);
+    public void onTouchMove(float x, float y) {
         float deltaX = x - lastTouchX;
         float deltaY = y - lastTouchY;
         if (deltaX < -1 || deltaX > 1 || deltaY < -1 || deltaY > 1) {
@@ -518,12 +522,10 @@ public class GraphView extends View implements Grapher {
         }
     }
 
-    private void onTouchUp(float x, float y, MotionEvent event) {
-        velocityTracker.addMovement(event);
-        velocityTracker.computeCurrentVelocity(1000);
+    public void onTouchUp(float x, float y) {
         final float scale = width / gwidth;
-        float sx = -velocityTracker.getXVelocity();
-        float sy = velocityTracker.getYVelocity();
+        float sx = -touchHandler.velocityTracker.getXVelocity();
+        float sy = touchHandler.velocityTracker.getYVelocity();
         final float asx = Math.abs(sx);
         final float asy = Math.abs(sy);
         if (asx < asy / 3) {
@@ -537,11 +539,11 @@ public class GraphView extends View implements Grapher {
         invalidate();
     }
 
-    private void onTouchZoomDown(float x1, float y1, float x2, float y2) {
+    public void onTouchZoomDown(float x1, float y1, float x2, float y2) {
         zoomTracker.start(gwidth, x1, y1, x2, y2);
     }
 
-    private void onTouchZoomMove(float x1, float y1, float x2, float y2) {
+    public void onTouchZoomMove(float x1, float y1, float x2, float y2) {
         if (!zoomTracker.update(x1, y1, x2, y2)) {
             return;
         }
@@ -552,68 +554,6 @@ public class GraphView extends View implements Grapher {
         // scroll(-zoomTracker.moveX, zoomTracker.moveY);
         invalidateGraphs();
         // Calculator.log("zoom redraw");
-    }
-
-    private void onTouchZoomUp() {
-        // Calculator.log("zoom ended");
-    }
-    
-    public boolean onTouchEvent(MotionEvent event) {
-        // Calculator.log("touch " + event + ' ' + event.getPointerCount() + event.getPointerId(0));
-        if (!isFullScreen) {
-            return super.onTouchEvent(event);
-        }
-
-        int fullAction = event.getAction();
-        int action  = fullAction & MotionEvent.ACTION_MASK;
-        int pointer = (fullAction & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
-        float x = event.getX();
-        float y = event.getY();
-        int nPoints = MotionEventWrap.getPointerCount(event);
-
-        switch (action) {
-        case MotionEvent.ACTION_DOWN:
-            if (isFullScreen) {
-                zoomController.setVisible(true);
-            }
-            isAfterZoom = false;
-            onTouchDown(x, y, event);
-            break;
-
-        case MotionEvent.ACTION_MOVE:
-            if (nPoints == 1) {
-                if (isAfterZoom) {
-                    velocityTracker.clear();
-                    lastTouchX = x;
-                    lastTouchY = y;
-                    isAfterZoom = false;
-                }
-                onTouchMove(x, y, event);
-            } else if (nPoints == 2) {
-                onTouchZoomMove(x, y, MotionEventWrap.getX(event, 1), MotionEventWrap.getY(event, 1));
-            }
-            break;
-
-        case MotionEvent.ACTION_UP:
-            onTouchUp(x, y, event);
-            break;
-
-            /*
-        case MotionEvent.ACTION_POINTER_DOWN:
-            if (nPoints == 2) {
-                onTouchZoomDown(x, y, MotionEventWrap.getX(event, 1), MotionEventWrap.getY(event, 1));
-            }
-            break;
-
-        case MotionEvent.ACTION_POINTER_UP:
-            if (nPoints == 2) {
-                onTouchZoomUp();
-                isAfterZoom = true;
-            }
-            break;
-            */
-        }
-        return true;
     }
 
     private void scroll(float deltaX, float deltaY) {
