@@ -15,11 +15,14 @@ class Defs extends FileHandler {
     Defs(Context context, Symbols symbols) {
 	super(context, "defs", 1);
 	this.symbols = symbols;
+        symbols.pushFrame();
 	load();
     }
 
     void clear() {
         lines.clear();
+        symbols.popFrame();
+        symbols.pushFrame();
     }
 
     int size() {

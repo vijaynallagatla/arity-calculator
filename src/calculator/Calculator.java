@@ -147,9 +147,6 @@ public class Calculator extends Activity implements TextWatcher,
         adapter = new HistoryAdapter(this, history);
         internalConfigChange(getResources().getConfiguration());
         
-	Symbol[] syms = symbols.getTopFrame();
-	int size = syms.length;
-	symbols.pushFrame();
 	defs = new Defs(this, symbols);
 	if (history.fileNotFound) {
 	    String[] init = {
