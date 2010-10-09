@@ -24,6 +24,10 @@ public class ShowGraph extends Activity {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         ArrayList<Function> funcs = Calculator.graphedFunction;
+        if (funcs == null) {
+            finish();
+            return;
+        }
         int size = funcs.size();
         if (size == 1) {
             Function f = funcs.get(0);
