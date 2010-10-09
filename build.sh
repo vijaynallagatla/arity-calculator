@@ -3,7 +3,7 @@
 NAME=Arity
 SRCS=src/calculator/Calculator.java
 LIBS=`find libs -name "*.jar"`
-KEYSTORE=/home/preda/cheie/and-0
+KEYSTORE=/home/preda/cheie/and
 KEYALIAS=and
 
 SDK=/home/preda/sdk
