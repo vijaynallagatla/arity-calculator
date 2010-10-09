@@ -3,16 +3,15 @@
 NAME=Arity
 SRCS=src/calculator/Calculator.java
 LIBS=`find libs -name "*.jar"`
-KEYSTORE=/home/preda/cheie/and
+KEYSTORE=/home/preda/cheie/and-0
 KEYALIAS=and
 
 SDK=/home/preda/sdk
-PLATFORM=$SDK/platforms/android-2.1/
+PLATFORM=$SDK/platforms/android-8/
 AAPT=$PLATFORM/tools/aapt
 DX=$PLATFORM/tools/dx
 AJAR=$PLATFORM/android.jar
 PKRES=bin/resource.ap_
-PROGUARD=/home/preda/proguard/lib/proguard.jar
 OUT=bin/$NAME-unalign.apk
 ALIGNOUT=bin/$NAME.apk
 set -e
@@ -24,13 +23,10 @@ echo aapt
 $AAPT package -f -m -J gen -M AndroidManifest.xml -S res -A assets -I $AJAR -F $PKRES
 
 echo javac
-javac -d bin/classes -classpath bin/classes:$LIBS -sourcepath src:gen -target 1.5 -bootclasspath $AJAR $SRCS
-
-echo proguard
-java -jar $PROGUARD -injars $LIBS:bin/classes -outjar bin/obfuscated.jar -libraryjars $AJAR @proguard.txt
+javac -d bin/classes -classpath bin/classes:$LIBS -sourcepath src:gen -bootclasspath $AJAR $SRCS
 
 echo dx
-$DX --dex --output=bin/classes.dex bin/obfuscated.jar 
+$DX --dex --output=bin/classes.dex $LIBS bin/classes 
 
 echo apkbuilder
 apkbuilder $OUT -u -z $PKRES -f bin/classes.dex
