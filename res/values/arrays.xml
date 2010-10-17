@@ -8,12 +8,4 @@
     <item>high</item>
     <item>low</item>
 </array>
-<array name="color_entries"> 
-    <item>Green</item> 
-    <item>Classic</item> 
-</array>
-<array name="color_values">
-    <item>green</item>
-    <item>classic</item>
-</array>
 </resources>
