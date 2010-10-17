@@ -1,4 +1,4 @@
-// Copyright (C) 2009 Mihai Preda
+// Copyright (C) 2009-2010 Mihai Preda
 
 package calculator;
 
@@ -99,43 +99,43 @@ class Graph3d {
             double sum = 0;
             float y = minY;
             float x = minX - stepX;
+            int nRealPoints = 0;
             for (int i = 0; i < N; i++, y+=stepY) {
                 float xinc = (i & 1) == 0 ? stepX : -stepX;
                 x += xinc;
                 for (int j = 0; j < N; ++j, x+=xinc, pos+=3) {
                     float z = (float) f.eval(x, y);
-                    if (z != z) {
-                        z = 0;
-                    }
                     vertices[pos] = x;
                     vertices[pos+1] = y;
                     vertices[pos+2] = z;
-                    sum += z*z;
+                    if (z == z) { // not NAN
+                        sum += z * z;
+                        ++nRealPoints;
+                    }
                 }
             }
-            float maxAbs = (float) Math.sqrt(sum/(N*N));
+            float maxAbs = (float) Math.sqrt(sum / nRealPoints);
             maxAbs *= .9f;
             maxAbs = Math.min(maxAbs, 15);
             maxAbs = Math.max(maxAbs, .001f);
 
             final int limitColor = N*N*4;
-            if (Calculator.useNewColors) {
-                for (int i = 0, j = 0; i < limitColor; i+=4, j+=3) {
-                    final float a = vertices[j+2] / maxAbs;
+            for (int i = 0, j = 2; i < limitColor; i+=4, j+=3) {
+                float z = vertices[j];
+                if (z == z) {
+                    final float a = z / maxAbs;
                     final float abs = a < 0 ? -a : a;
                     colors[i]   = floatToByte(a);
                     colors[i+1] = floatToByte(1-abs*.3f);
                     colors[i+2] = floatToByte(-a);
                     colors[i+3] = (byte) 255;
-                }
-            } else {
-                for (int i = 0, j = 0; i < limitColor; i+=4, j+=3) {
-                    final float a = vertices[j+2] / maxAbs;
-                    final float abs = a < 0 ? -a : a;
-                    colors[i]   = floatToByte(a+1);
-                    colors[i+1] = floatToByte(abs*.7f);
-                    colors[i+2] = floatToByte(-a+1);
-                    colors[i+3] = (byte) 255;
+                } else {
+                    vertices[j] = 0;
+                    z = 0;
+                    colors[i]   = 0;
+                    colors[i+1] = 0;
+                    colors[i+2] = 0;
+                    colors[i+3] = 0;
                 }
             }
         }

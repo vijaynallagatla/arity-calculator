@@ -6,11 +6,4 @@
          android:entries="@array/quality_entries"
          android:entryValues="@array/quality_values"
          />
-
-    <ListPreference 
-         android:key="color"
-         android:title="3D color"
-         android:entries="@array/color_entries"
-         android:entryValues="@array/color_values"
-         />
 </PreferenceScreen>
